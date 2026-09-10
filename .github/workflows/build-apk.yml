@@ -16,9 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Rebuild All Convert HTML asset
+      - name: Restore All Convert HTML asset
         working-directory: allconvert_native
         run: |
+          mkdir -p app/src/main/assets
           cat .build/index.gz.b64.aa .build/index.gz.b64.ab .build/index.gz.b64.ac .build/index.gz.b64.ad .build/index.gz.b64.ae > /tmp/index.gz.b64
           base64 -d /tmp/index.gz.b64 > /tmp/index.gz
           gunzip -c /tmp/index.gz > app/src/main/assets/index.html

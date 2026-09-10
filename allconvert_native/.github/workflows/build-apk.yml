@@ -16,6 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Rebuild All Convert HTML asset
+        working-directory: allconvert_native
+        run: |
+          cat .build/index.gz.b64.aa .build/index.gz.b64.ab .build/index.gz.b64.ac .build/index.gz.b64.ad .build/index.gz.b64.ae > /tmp/index.gz.b64
+          base64 -d /tmp/index.gz.b64 > /tmp/index.gz
+          gunzip -c /tmp/index.gz > app/src/main/assets/index.html
+          test -s app/src/main/assets/index.html
+          echo "HTML asset restored: $(wc -c < app/src/main/assets/index.html) bytes"
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -43,12 +52,13 @@ jobs:
           sdkmanager --list_installed | head -80
 
       - name: Build debug APK
+        working-directory: allconvert_native
         run: gradle --no-daemon --stacktrace assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: All-Convert-debug-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: allconvert_native/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14

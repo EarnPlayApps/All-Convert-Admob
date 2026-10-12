@@ -28,7 +28,7 @@ jobs:
           gunzip -c /tmp/index.gz > app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
           ACTUAL=$(wc -c < app/src/main/assets/index.html)
-          test "$ACTUAL" -eq 31327
+          test "$ACTUAL" -eq 31823
           grep -q 'ALL CONVERT ADMOB LIVE BANNER' app/src/main/assets/index.html
           grep -q 'ca-app-pub-9940728659432865/7572128943' app/src/main/assets/index.html
           echo "HTML asset restored and verified: $ACTUAL bytes"
@@ -79,4 +79,4 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-# Rebuild requested on 2026-10-12
+# Native file actions repaired on 2026-10-12

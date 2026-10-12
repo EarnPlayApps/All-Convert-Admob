@@ -70,20 +70,20 @@ jobs:
           gradle --version
           sdkmanager --list_installed | head -80
 
-      - name: Build debug APK
+      - name: Build release APK (optimized)
         working-directory: allconvert_native
-        run: gradle --no-daemon --stacktrace assembleDebug
+        run: gradle --no-daemon --stacktrace assembleRelease
 
       - name: Verify APK output
         working-directory: allconvert_native
         run: |
-          test -s app/build/outputs/apk/debug/*.apk
+          test -s app/build/outputs/apk/release/*.apk
           ls -lh app/build/outputs/apk/debug/*.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: All-Convert-debug-APK
+          name: All-Convert-optimized-APK
           path: allconvert_native/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14

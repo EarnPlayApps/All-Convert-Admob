@@ -15,6 +15,12 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Button;
+import android.graphics.Color;
+import android.view.Gravity;
+import android.view.ViewGroup;
 import android.widget.Toast;
 import androidx.core.content.FileProvider;
 import com.google.android.gms.ads.AdListener;
@@ -49,14 +55,14 @@ public class MainActivity extends Activity {
     private static final String NATIVE_ID="ca-app-pub-9940728659432865/5224488586";
     private static final String APP_OPEN_ID="ca-app-pub-9940728659432865/1006961841";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd; private android.widget.FrameLayout bannerContainer;
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton;
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
-    private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false;
+    private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;
 
     @Override public void onCreate(Bundle b){
         super.onCreate(b); setContentView(R.layout.activity_main);
-        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer);
+        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); rewardButton=findViewById(R.id.rewardButton); rewardButton.setVisibility(View.GONE); rewardButton.setOnClickListener(v->showRewardedIfReady());
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
         webView.addJavascriptInterface(new AndroidBridge(),"AndroidBridge");
@@ -135,17 +141,17 @@ public class MainActivity extends Activity {
         @Override public void onAdLoaded(InterstitialAd ad){interstitialAd=ad;ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){interstitialAd=null;loadInterstitial();}});}
         @Override public void onAdFailedToLoad(LoadAdError e){interstitialAd=null;}
     });}
-    private void showInterstitialIfReady(){long now=System.currentTimeMillis();if(now-lastInterstitialShown<180000L)return;if(interstitialAd!=null && !appOpenShowing){lastInterstitialShown=now;interstitialAd.show(this);}else loadInterstitial();}
+    private void showInterstitialIfReady(){long now=System.currentTimeMillis();if(now-lastInterstitialShown<180000L)return;if(skipNextInterstitial){skipNextInterstitial=false;webView.evaluateJavascript("window.__allConvertRewardedUsed&&window.__allConvertRewardedUsed()",null);loadInterstitial();return;}if(interstitialAd!=null && !appOpenShowing){lastInterstitialShown=now;interstitialAd.show(this);}else loadInterstitial();}
 
     private void loadRewarded(){RewardedAd.load(this,REWARDED_ID,new AdRequest.Builder().build(),new RewardedAdLoadCallback(){
-        @Override public void onAdLoaded(RewardedAd ad){rewardedAd=ad;}
-        @Override public void onAdFailedToLoad(LoadAdError e){rewardedAd=null;}
+        @Override public void onAdLoaded(RewardedAd ad){rewardedAd=ad;runOnUiThread(()->rewardButton.setVisibility(View.VISIBLE));}
+        @Override public void onAdFailedToLoad(LoadAdError e){rewardedAd=null;runOnUiThread(()->rewardButton.setVisibility(View.GONE));}
     });}
     private void showRewardedIfReady(){
         if(rewardedAd==null){loadRewarded();Toast.makeText(this,"Rewarded ad belum tersedia.",Toast.LENGTH_SHORT).show();return;}
-        RewardedAd ad=rewardedAd; rewardedAd=null;
+        RewardedAd ad=rewardedAd; rewardedAd=null; rewardButton.setVisibility(View.GONE);
         ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){loadRewarded();}});
-        ad.show(this,rewardItem->webView.evaluateJavascript("window.__allConvertRewarded&&window.__allConvertRewarded("+rewardItem.getAmount()+")",null));
+        ad.show(this,rewardItem->{skipNextInterstitial=true;webView.evaluateJavascript("window.__allConvertRewarded&&window.__allConvertRewarded("+rewardItem.getAmount()+")",null);});
     }
 
     private void loadNative(){
@@ -153,8 +159,24 @@ public class MainActivity extends Activity {
             .withNativeAdOptions(new NativeAdOptions.Builder().build()).withAdListener(new AdListener(){}).build();
         loader.loadAd(new AdRequest.Builder().build());
     }
+    private int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
     private void renderNative(NativeAd ad){
-        // Prevent native ads from overlaying the converter until a dedicated in-flow slot exists.
+        if(nativeContainer==null)return;
+        nativeContainer.removeAllViews();
+        NativeAdView nv=new NativeAdView(this);
+        nv.setLayoutParams(new FrameLayout.LayoutParams(-1,dp(132)));
+        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(8),dp(6),dp(8),dp(6)); row.setBackgroundColor(Color.WHITE);
+        com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(120),dp(120)));
+        row.addView(media);
+        LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(9),0,dp(4),0); text.setLayoutParams(new LinearLayout.LayoutParams(0,-1,1));
+        TextView headline=new TextView(this); headline.setTextSize(14); headline.setTextColor(Color.rgb(20,28,45)); headline.setMaxLines(2); headline.setTypeface(null,android.graphics.Typeface.BOLD);
+        TextView body=new TextView(this); body.setTextSize(11); body.setTextColor(Color.rgb(90,100,120)); body.setMaxLines(2); body.setPadding(0,dp(3),0,dp(3));
+        Button cta=new Button(this); cta.setTextSize(11); cta.setMinHeight(dp(36)); cta.setAllCaps(false); cta.setTextColor(Color.rgb(40,60,120));
+        text.addView(headline,new LinearLayout.LayoutParams(-1,0,1)); text.addView(body,new LinearLayout.LayoutParams(-1,0,1)); text.addView(cta,new LinearLayout.LayoutParams(-1,dp(40)));
+        row.addView(text);
+        nv.addView(row);
+        nv.setMediaView(media); nv.setHeadlineView(headline); nv.setBodyView(body); nv.setCallToActionView(cta); nv.setNativeAd(ad);
+        nativeContainer.addView(nv); nativeContainer.setVisibility(View.VISIBLE);
     }
     private void showAppOpenIfReady(){
         if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<180000L)return;

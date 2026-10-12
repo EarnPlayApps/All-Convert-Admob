@@ -42,7 +42,7 @@ jobs:
           grep -q 'ca-app-pub-9940728659432865/1006961841' app/src/main/java/com/allconvert/app/MainActivity.java
           echo "HTML asset and native AdMob IDs verified: $ACTUAL bytes"
 
-      - name: Setup Java 17
+      - name: Setup Java 17 (Android build JDK)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -59,10 +59,10 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Setup Gradle 9.8.1
+      - name: Setup Gradle 8.14.6 (compatible with AGP 8.7.3)
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '9.8.1'
+          gradle-version: '8.14.6'
 
       - name: Verify toolchain
         run: |
@@ -78,13 +78,13 @@ jobs:
         working-directory: allconvert_native
         run: |
           test -s app/build/outputs/apk/release/*.apk
-          ls -lh app/build/outputs/apk/debug/*.apk
+          ls -lh app/build/outputs/apk/release/*.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: All-Convert-optimized-APK
-          path: allconvert_native/app/build/outputs/apk/debug/*.apk
+          path: allconvert_native/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 14
 

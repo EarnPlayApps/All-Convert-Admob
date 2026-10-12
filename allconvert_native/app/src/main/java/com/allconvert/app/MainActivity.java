@@ -154,19 +154,10 @@ public class MainActivity extends Activity {
         loader.loadAd(new AdRequest.Builder().build());
     }
     private void renderNative(NativeAd ad){
-        NativeAdView v=findViewById(R.id.nativeAdView);
-        if(v==null)return;
-        v.setVisibility(View.VISIBLE); v.setHeadlineView(v.findViewById(R.id.nativeHeadline)); v.setBodyView(v.findViewById(R.id.nativeBody));
-        v.setAdvertiserView(v.findViewById(R.id.nativeAdvertiser)); v.setCallToActionView(v.findViewById(R.id.nativeCta));
-        ((android.widget.TextView)v.getHeadlineView()).setText(ad.getHeadline());
-        if(ad.getBody()==null)v.getBodyView().setVisibility(View.GONE);else{v.getBodyView().setVisibility(View.VISIBLE);((android.widget.TextView)v.getBodyView()).setText(ad.getBody());}
-        if(ad.getAdvertiser()==null)v.getAdvertiserView().setVisibility(View.GONE);else{v.getAdvertiserView().setVisibility(View.VISIBLE);((android.widget.TextView)v.getAdvertiserView()).setText(ad.getAdvertiser());}
-        if(ad.getCallToAction()==null)v.getCallToActionView().setVisibility(View.GONE);else{v.getCallToActionView().setVisibility(View.VISIBLE);((android.widget.Button)v.getCallToActionView()).setText(ad.getCallToAction());}
-        v.setNativeAd(ad);
+        // Prevent native ads from overlaying the converter until a dedicated in-flow slot exists.
     }
     private void showAppOpenIfReady(){
-        if(!startedOnce){startedOnce=true;return;}
-        if(System.currentTimeMillis()-lastAppOpenShown<30000)return;
+        if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<14400000L)return;
         com.google.android.gms.ads.appopen.AppOpenAd.load(this,APP_OPEN_ID,new AdRequest.Builder().build(),new com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback(){
             @Override public void onAdLoaded(com.google.android.gms.ads.appopen.AppOpenAd ad){
                 if(System.currentTimeMillis()-lastAppOpenShown<14400000L)return;

@@ -76,3 +76,5 @@ jobs:
           path: allconvert_native/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+# Rebuild requested on 2026-10-12

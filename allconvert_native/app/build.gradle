@@ -1,7 +1,32 @@
 plugins { id 'com.android.application' }
 
-android { namespace 'com.allconvert.app'; compileSdk 35
-    defaultConfig { applicationId 'com.allconvert.app'; minSdk 24; targetSdk 35; versionCode 1; versionName '1.0' }
+android {
+    namespace 'com.allconvert.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.allconvert.app'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
 }
 
-dependencies { implementation 'androidx.appcompat:appcompat:1.7.0'; implementation 'com.google.android.gms:play-services-ads:25.4.0' }
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.gms:play-services-ads:25.4.0'
+}

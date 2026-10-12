@@ -30,8 +30,13 @@ jobs:
           ACTUAL=$(wc -c < app/src/main/assets/index.html)
           test "$ACTUAL" -eq 31823
           grep -q 'ALL CONVERT ADMOB LIVE BANNER' app/src/main/assets/index.html
-          grep -q 'ca-app-pub-9940728659432865/6234492932' app/src/main/assets/index.html
-          echo "HTML asset restored and verified: $ACTUAL bytes"
+          grep -q 'ca-app-pub-9940728659432865~2706136459' app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q 'ca-app-pub-9940728659432865/6234492932' app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q 'ca-app-pub-9940728659432865/4102978608' app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q 'ca-app-pub-9940728659432865/6537570257' app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q 'ca-app-pub-9940728659432865/5224488586' app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q 'ca-app-pub-9940728659432865/1006961841' app/src/main/java/com/allconvert/app/MainActivity.java
+          echo "HTML asset and native AdMob IDs verified: $ACTUAL bytes"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4

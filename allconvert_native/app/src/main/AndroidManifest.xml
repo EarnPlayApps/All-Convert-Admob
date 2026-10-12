@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 <uses-permission android:name="android.permission.INTERNET"/>
 <application android:theme="@style/AppTheme" android:label="All Convert" android:usesCleartextTraffic="false">
-<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-9940728659432865~7835018675"/>
+<meta-data name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-9940728659432865~2706136459"/>
 <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/></provider>
 <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop">
 <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>

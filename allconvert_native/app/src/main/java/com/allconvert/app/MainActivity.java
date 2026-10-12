@@ -48,7 +48,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void download(String n,String m,String b){saveDownload(safe(n),mime(m),dec(b));}
         @JavascriptInterface public void saveAs(String n,String m,String b){pendingBytes=dec(b);Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,safe(n));startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}
         @JavascriptInterface public void share(String n,String m,String b){shareOrOpen(safe(n),mime(m),dec(b));}
-        @JavascriptInterface public void openWith(String n,String m,String b){shareOrOpen(safe(n),mime(m),dec(b));}
+        @JavascriptInterface public void openWith(String n,String m,String b){openFile(safe(n),mime(m),dec(b));}
     }
     private byte[] dec(String s){try{return Base64.getDecoder().decode(s);}catch(Exception e){return new byte[0];}}
     private String safe(String s){return s==null||s.isEmpty()?"converted_file":s.replaceAll("[\\r\\n\\\\/:*?\"<>|]","_");}
@@ -70,6 +70,15 @@ public class MainActivity extends Activity {
             Intent i=new Intent(Intent.ACTION_SEND);i.setType(m);i.putExtra(Intent.EXTRA_STREAM,u);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(Intent.createChooser(i,"Share / Open With"));
         }catch(Exception e){webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('share')",null);}
+    }
+    private void openFile(String n,String m,byte[] data){
+        try{
+            File d=new File(getCacheDir(),"shared");if(!d.exists())d.mkdirs();File f=new File(d,n);
+            try(FileOutputStream o=new FileOutputStream(f)){o.write(data);}
+            Uri u=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f);
+            Intent i=new Intent(Intent.ACTION_VIEW);i.setDataAndType(u,m);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(i);
+        }catch(Exception e){shareOrOpen(n,m,data);}
     }
     private void handleIncoming(Intent x){
         if(x==null)return;String a=x.getAction();Uri u=x.getData();

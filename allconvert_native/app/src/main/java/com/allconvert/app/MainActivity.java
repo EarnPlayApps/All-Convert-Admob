@@ -252,11 +252,17 @@ public class MainActivity extends Activity {
         hide.setContentDescription("Sembunyikan iklan");
         hide.setBackgroundColor(Color.TRANSPARENT);
         hide.setPadding(dp(8),dp(2),dp(8),dp(2));
-        hide.setOnClickListener(v->nativeContainer.setVisibility(View.GONE));
         wrap.addView(nv);
         LinearLayout.LayoutParams hideParams=new LinearLayout.LayoutParams(-1,dp(32));
         hideParams.gravity=Gravity.CENTER_HORIZONTAL;
         wrap.addView(hide,hideParams);
+        final boolean[] nativeHidden={false};
+        hide.setOnClickListener(v->{
+            nativeHidden[0]=!nativeHidden[0];
+            nv.setVisibility(nativeHidden[0]?View.GONE:View.VISIBLE);
+            hide.setImageResource(nativeHidden[0]?android.R.drawable.arrow_down_float:android.R.drawable.arrow_up_float);
+            hide.setContentDescription(nativeHidden[0]?"Tunjukkan iklan":"Sembunyikan iklan");
+        });
         nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }
     private void showAppOpenIfReady(){

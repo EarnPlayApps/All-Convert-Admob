@@ -135,7 +135,7 @@ public class MainActivity extends Activity {
         @Override public void onAdLoaded(InterstitialAd ad){interstitialAd=ad;ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){interstitialAd=null;loadInterstitial();}});}
         @Override public void onAdFailedToLoad(LoadAdError e){interstitialAd=null;}
     });}
-    private void showInterstitialIfReady(){if(interstitialAd!=null && !appOpenShowing){lastInterstitialShown=System.currentTimeMillis();interstitialAd.show(this);}else loadInterstitial();}
+    private void showInterstitialIfReady(){long now=System.currentTimeMillis();if(now-lastInterstitialShown<180000L)return;if(interstitialAd!=null && !appOpenShowing){lastInterstitialShown=now;interstitialAd.show(this);}else loadInterstitial();}
 
     private void loadRewarded(){RewardedAd.load(this,REWARDED_ID,new AdRequest.Builder().build(),new RewardedAdLoadCallback(){
         @Override public void onAdLoaded(RewardedAd ad){rewardedAd=ad;}
@@ -157,10 +157,10 @@ public class MainActivity extends Activity {
         // Prevent native ads from overlaying the converter until a dedicated in-flow slot exists.
     }
     private void showAppOpenIfReady(){
-        if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<14400000L)return;
+        if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<180000L)return;
         com.google.android.gms.ads.appopen.AppOpenAd.load(this,APP_OPEN_ID,new AdRequest.Builder().build(),new com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback(){
             @Override public void onAdLoaded(com.google.android.gms.ads.appopen.AppOpenAd ad){
-                if(System.currentTimeMillis()-lastAppOpenShown<14400000L)return;
+                if(System.currentTimeMillis()-lastAppOpenShown<180000L)return;
                 appOpenShowing=true;
                 if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
                 ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){

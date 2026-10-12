@@ -1,6 +1,7 @@
 package com.allconvert.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.net.Uri;
@@ -79,7 +80,10 @@ public class MainActivity extends Activity {
     }
 
     private class AndroidBridge{
-        @JavascriptInterface public void download(String n,String m,String b){saveDownload(safe(n),mime(m),dec(b));}
+        @JavascriptInterface public void download(String n,String m,String b){
+            String name=safe(n); String type=mime(m); byte[] data=dec(b);
+            if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}else{saveDownload(name,type,data);}
+        }
         @JavascriptInterface public void saveAs(String n,String m,String b){pendingBytes=dec(b);Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,safe(n));startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}
         @JavascriptInterface public void share(String n,String m,String b){shareOrOpen(safe(n),mime(m),dec(b));}
         @JavascriptInterface public void openWith(String n,String m,String b){openFile(safe(n),mime(m),dec(b));}
@@ -88,6 +92,34 @@ public class MainActivity extends Activity {
     private byte[] dec(String s){try{return Base64.getDecoder().decode(s);}catch(Exception e){return new byte[0];}}
     private String safe(String s){return s==null||s.isEmpty()?"converted_file":s.replaceAll("[\r\n\\/:*?\"<>|]","_");}
     private String mime(String s){return s==null||s.isEmpty()?"application/octet-stream":s;}
+
+    private boolean isHtmlFile(String n,String m){
+        String name=n==null?"":n.toLowerCase(); String type=m==null?"":m.toLowerCase();
+        return type.contains("text/html") || type.contains("application/xhtml+xml") || name.endsWith(".html") || name.endsWith(".htm");
+    }
+
+    private void showHtmlPreview(String n,String m,byte[] data){
+        if(data==null||data.length==0)return;
+        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(10),dp(4),dp(10),dp(8));
+        TextView info=new TextView(this); info.setText("Preview • "+n); info.setTextSize(14); info.setTextColor(Color.rgb(20,28,45)); info.setTypeface(null,android.graphics.Typeface.BOLD); info.setPadding(dp(4),dp(4),dp(4),dp(8));
+        root.addView(info,new LinearLayout.LayoutParams(-1,dp(38)));
+        WebView preview=new WebView(this); preview.setBackgroundColor(Color.WHITE); WebSettings ps=preview.getSettings(); ps.setJavaScriptEnabled(false); ps.setDomStorageEnabled(false); ps.setAllowFileAccess(false); ps.setAllowContentAccess(false);
+        String html=new String(data,java.nio.charset.StandardCharsets.UTF_8);
+        preview.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);
+        root.addView(preview,new LinearLayout.LayoutParams(-1,0,1));
+        LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL); actions.setGravity(Gravity.CENTER); actions.setPadding(0,dp(8),0,0);
+        Button download=new Button(this); download.setText("Download"); download.setAllCaps(false);
+        Button save=new Button(this); save.setText("Save As"); save.setAllCaps(false);
+        Button share=new Button(this); share.setText("Share"); share.setAllCaps(false);
+        actions.addView(download,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(save,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(share,new LinearLayout.LayoutParams(0,dp(44),1));
+        root.addView(actions,new LinearLayout.LayoutParams(-1,dp(52)));
+        final AlertDialog dialog=new AlertDialog.Builder(this).setTitle("HTML Preview").setView(root).setNegativeButton("Tutup",null).create();
+        download.setOnClickListener(v->{dialog.dismiss();saveDownload(n,m,data);});
+        save.setOnClickListener(v->{dialog.dismiss();pendingBytes=data;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(m);i.putExtra(Intent.EXTRA_TITLE,n);startActivityForResult(i,SAVE_DOCUMENT_REQUEST);});
+        share.setOnClickListener(v->shareOrOpen(n,m,data));
+        dialog.setOnDismissListener(v->preview.destroy());
+        dialog.show();
+    }
 
     private void saveDownload(String n,String m,byte[] data){
         if(data.length==0)return; try{

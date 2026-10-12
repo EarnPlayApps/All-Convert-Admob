@@ -247,8 +247,16 @@ public class MainActivity extends Activity {
         row.addView(text);
         nv.addView(row);
         nv.setMediaView(media); nv.setHeadlineView(headline); nv.setBodyView(body); nv.setCallToActionView(cta); nv.setNativeAd(ad);
-        Button hide=new Button(this); hide.setText("Tutup Iklan"); hide.setTextSize(10); hide.setAllCaps(false); hide.setMinHeight(dp(30)); hide.setOnClickListener(v->nativeContainer.setVisibility(View.GONE));
-        wrap.addView(nv); wrap.addView(hide,new LinearLayout.LayoutParams(-1,dp(32)));
+        android.widget.ImageButton hide=new android.widget.ImageButton(this);
+        hide.setImageResource(android.R.drawable.arrow_up_float);
+        hide.setContentDescription("Sembunyikan iklan");
+        hide.setBackgroundColor(Color.TRANSPARENT);
+        hide.setPadding(dp(8),dp(2),dp(8),dp(2));
+        hide.setOnClickListener(v->nativeContainer.setVisibility(View.GONE));
+        wrap.addView(nv);
+        LinearLayout.LayoutParams hideParams=new LinearLayout.LayoutParams(-1,dp(32));
+        hideParams.gravity=Gravity.CENTER_HORIZONTAL;
+        wrap.addView(hide,hideParams);
         nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }
     private void showAppOpenIfReady(){

@@ -49,14 +49,14 @@ public class MainActivity extends Activity {
     private static final String NATIVE_ID="ca-app-pub-9940728659432865/5224488586";
     private static final String APP_OPEN_ID="ca-app-pub-9940728659432865/1006961841";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd;
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private android.widget.FrameLayout bannerContainer;
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
-    private int conversionCount=0; private long lastAppOpenShown=0L; private boolean startedOnce=false;
+    private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false;
 
     @Override public void onCreate(Bundle b){
         super.onCreate(b); setContentView(R.layout.activity_main);
-        webView=findViewById(R.id.webView);
+        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer);
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
         webView.addJavascriptInterface(new AndroidBridge(),"AndroidBridge");
@@ -122,13 +122,20 @@ public class MainActivity extends Activity {
     private String q(String s){return JSONObject.quote(String.valueOf(s));}
     private byte[] read(Uri u)throws Exception{try(InputStream i=getContentResolver().openInputStream(u);ByteArrayOutputStream o=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=i.read(b))>0)o.write(b,0,n);return o.toByteArray();}}
 
-    private void showBanner(){adView=new AdView(this);adView.setAdUnitId(BANNER_ID);adView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this,360));addContentView(adView,new android.view.ViewGroup.LayoutParams(-1,-2));adView.loadAd(new AdRequest.Builder().build());}
+    private void showBanner(){
+        if(bannerContainer==null)return;
+        adView=new AdView(this);adView.setAdUnitId(BANNER_ID);
+        int width=(int)(getResources().getDisplayMetrics().widthPixels/getResources().getDisplayMetrics().density);
+        adView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this,Math.max(320,width)));
+        bannerContainer.removeAllViews();bannerContainer.addView(adView,new android.widget.FrameLayout.LayoutParams(-1,-2));
+        adView.loadAd(new AdRequest.Builder().build());
+    }
 
     private void loadInterstitial(){InterstitialAd.load(this,INTERSTITIAL_ID,new AdRequest.Builder().build(),new InterstitialAdLoadCallback(){
         @Override public void onAdLoaded(InterstitialAd ad){interstitialAd=ad;ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){interstitialAd=null;loadInterstitial();}});}
         @Override public void onAdFailedToLoad(LoadAdError e){interstitialAd=null;}
     });}
-    private void showInterstitialIfReady(){if(interstitialAd!=null){interstitialAd.show(this);}else loadInterstitial();}
+    private void showInterstitialIfReady(){if(interstitialAd!=null && !appOpenShowing){lastInterstitialShown=System.currentTimeMillis();interstitialAd.show(this);}else loadInterstitial();}
 
     private void loadRewarded(){RewardedAd.load(this,REWARDED_ID,new AdRequest.Builder().build(),new RewardedAdLoadCallback(){
         @Override public void onAdLoaded(RewardedAd ad){rewardedAd=ad;}
@@ -161,7 +168,16 @@ public class MainActivity extends Activity {
         if(!startedOnce){startedOnce=true;return;}
         if(System.currentTimeMillis()-lastAppOpenShown<30000)return;
         com.google.android.gms.ads.appopen.AppOpenAd.load(this,APP_OPEN_ID,new AdRequest.Builder().build(),new com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback(){
-            @Override public void onAdLoaded(com.google.android.gms.ads.appopen.AppOpenAd ad){if(System.currentTimeMillis()-lastAppOpenShown<30000)return;ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();}});ad.show(MainActivity.this);}
+            @Override public void onAdLoaded(com.google.android.gms.ads.appopen.AppOpenAd ad){
+                if(System.currentTimeMillis()-lastAppOpenShown<14400000L)return;
+                appOpenShowing=true;
+                if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
+                ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){
+                    @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();appOpenShowing=false;if(bannerContainer!=null)bannerContainer.setVisibility(View.VISIBLE);}
+                    @Override public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError e){appOpenShowing=false;if(bannerContainer!=null)bannerContainer.setVisibility(View.VISIBLE);}
+                });
+                ad.show(MainActivity.this);
+            }
         });
     }
 
@@ -170,7 +186,7 @@ public class MainActivity extends Activity {
         if(r==FILE_CHOOSER_REQUEST){if(filePathCallback==null)return;Uri[] z=null;if(c==RESULT_OK&&d!=null){if(d.getClipData()!=null){int n=d.getClipData().getItemCount();z=new Uri[n];for(int i=0;i<n;i++)z[i]=d.getClipData().getItemAt(i).getUri();}else if(d.getData()!=null)z=new Uri[]{d.getData()};}filePathCallback.onReceiveValue(z);filePathCallback=null;}
         else if(r==SAVE_DOCUMENT_REQUEST){if(c==RESULT_OK&&d!=null&&d.getData()!=null&&pendingBytes!=null)try(OutputStream o=getContentResolver().openOutputStream(d.getData())){o.write(pendingBytes);}catch(Exception ignored){}pendingBytes=null;}
     }
-    @Override protected void onStart(){super.onStart(); if(startedOnce) new android.os.Handler().postDelayed(()->showAppOpenIfReady(),500);}
+    @Override protected void onStart(){super.onStart(); if(!firstSession) new android.os.Handler().postDelayed(()->showAppOpenIfReady(),800);}
     @Override protected void onNewIntent(Intent i){super.onNewIntent(i);setIntent(i);handleIncoming(i);}
     @Override protected void onDestroy(){if(filePathCallback!=null){filePathCallback.onReceiveValue(null);filePathCallback=null;}if(adView!=null)adView.destroy();if(nativeAd!=null)nativeAd.destroy();if(webView!=null)webView.destroy();super.onDestroy();}
 }

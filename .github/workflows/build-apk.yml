@@ -26,10 +26,14 @@ jobs:
           tr -cd 'A-Za-z0-9+/=' < /tmp/index.gz.b64 > /tmp/index.clean.b64
           base64 --ignore-garbage -d /tmp/index.clean.b64 > /tmp/index.gz
           gunzip -c /tmp/index.gz > app/src/main/assets/index.html
+          sed -i 's/ca-app-pub-9940728659432865~7835018675/ca-app-pub-9940728659432865~2706136459/g; s/ca-app-pub-9940728659432865\/7572128943/ca-app-pub-9940728659432865\/6234492932/g' app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
           ACTUAL=$(wc -c < app/src/main/assets/index.html)
           test "$ACTUAL" -eq 31823
           grep -q 'ALL CONVERT ADMOB LIVE BANNER' app/src/main/assets/index.html
+          grep -q 'ca-app-pub-9940728659432865~2706136459' app/src/main/assets/index.html
+          grep -q 'ca-app-pub-9940728659432865/6234492932' app/src/main/assets/index.html
+          ! grep -q 'ca-app-pub-9940728659432865/7572128943' app/src/main/assets/index.html
           grep -q 'ca-app-pub-9940728659432865~2706136459' app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q 'ca-app-pub-9940728659432865/6234492932' app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q 'ca-app-pub-9940728659432865/4102978608' app/src/main/java/com/allconvert/app/MainActivity.java

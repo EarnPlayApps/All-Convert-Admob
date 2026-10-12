@@ -211,9 +211,9 @@ public class MainActivity extends Activity {
         nativeContainer.removeAllViews();
         LinearLayout wrap=new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL); wrap.setBackgroundColor(Color.WHITE);
         NativeAdView nv=new NativeAdView(this);
-        nv.setLayoutParams(new LinearLayout.LayoutParams(-1,dp(104)));
-        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(8),dp(4),dp(8),dp(2));
-        com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(92),dp(92)));
+        nv.setLayoutParams(new LinearLayout.LayoutParams(-1,dp(128)));
+        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(8),dp(4),dp(8),dp(4));
+        com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(120),dp(120)));
         row.addView(media);
         LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(8),0,dp(4),0); text.setLayoutParams(new LinearLayout.LayoutParams(0,-1,1));
         TextView headline=new TextView(this); headline.setTextSize(13); headline.setTextColor(Color.rgb(20,28,45)); headline.setMaxLines(2); headline.setTypeface(null,android.graphics.Typeface.BOLD);

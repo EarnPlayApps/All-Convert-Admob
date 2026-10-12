@@ -38,6 +38,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Base64;
+import org.json.JSONObject;
 
 public class MainActivity extends Activity {
     private static final int FILE_CHOOSER_REQUEST=1001, SAVE_DOCUMENT_REQUEST=1002;
@@ -118,8 +119,7 @@ public class MainActivity extends Activity {
             String js="window.__allConvertIncoming&&window.__allConvertIncoming("+q(n)+","+q(mime(m))+",'"+b+"')";webView.evaluateJavascript(js,null);
         }catch(Exception ignored){}
     }
-    private String q(String s){return "'"+String.valueOf(s).replace("\","\\").replace("'","\'").replace("
-","\n").replace("","\r")+"'";}
+    private String q(String s){return JSONObject.quote(String.valueOf(s));}
     private byte[] read(Uri u)throws Exception{try(InputStream i=getContentResolver().openInputStream(u);ByteArrayOutputStream o=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=i.read(b))>0)o.write(b,0,n);return o.toByteArray();}}
 
     private void showBanner(){adView=new AdView(this);adView.setAdUnitId(BANNER_ID);adView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this,360));addContentView(adView,new android.view.ViewGroup.LayoutParams(-1,-2));adView.loadAd(new AdRequest.Builder().build());}

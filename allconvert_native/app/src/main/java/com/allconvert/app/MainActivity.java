@@ -180,7 +180,10 @@ public class MainActivity extends Activity {
     private void showBanner(){
         if(bannerContainer==null)return;
         bannerLoaded=false;
+        bannerContainer.removeAllViews();
         bannerContainer.setVisibility(View.GONE);
+        bannerContainer.getLayoutParams().height=0;
+        bannerContainer.requestLayout();
         adView=new AdView(this);adView.setAdUnitId(BANNER_ID);
         int width=(int)(getResources().getDisplayMetrics().widthPixels/getResources().getDisplayMetrics().density);
         adView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this,Math.max(320,width)));
@@ -189,11 +192,15 @@ public class MainActivity extends Activity {
         adView.setAdListener(new AdListener(){
             @Override public void onAdLoaded(){
                 bannerLoaded=true;
+                bannerContainer.getLayoutParams().height=android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+                bannerContainer.requestLayout();
                 bannerContainer.setVisibility(View.VISIBLE);
             }
             @Override public void onAdFailedToLoad(LoadAdError error){
                 bannerLoaded=false;
                 bannerContainer.removeAllViews();
+                bannerContainer.getLayoutParams().height=0;
+                bannerContainer.requestLayout();
                 bannerContainer.setVisibility(View.GONE);
             }
         });

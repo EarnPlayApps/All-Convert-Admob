@@ -55,7 +55,7 @@ public class MainActivity extends Activity {
     private static final String NATIVE_ID="ca-app-pub-9940728659432865/5224488586";
     private static final String APP_OPEN_ID="ca-app-pub-9940728659432865/1006961841";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton;
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
     private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;
@@ -174,20 +174,23 @@ public class MainActivity extends Activity {
     private void renderNative(NativeAd ad){
         if(nativeContainer==null)return;
         nativeContainer.removeAllViews();
+        LinearLayout wrap=new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL); wrap.setBackgroundColor(Color.WHITE);
         NativeAdView nv=new NativeAdView(this);
-        nv.setLayoutParams(new FrameLayout.LayoutParams(-1,dp(132)));
-        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(8),dp(6),dp(8),dp(6)); row.setBackgroundColor(Color.WHITE);
-        com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(120),dp(120)));
+        nv.setLayoutParams(new LinearLayout.LayoutParams(-1,dp(104)));
+        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(8),dp(4),dp(8),dp(2));
+        com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(92),dp(92)));
         row.addView(media);
-        LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(9),0,dp(4),0); text.setLayoutParams(new LinearLayout.LayoutParams(0,-1,1));
-        TextView headline=new TextView(this); headline.setTextSize(14); headline.setTextColor(Color.rgb(20,28,45)); headline.setMaxLines(2); headline.setTypeface(null,android.graphics.Typeface.BOLD);
-        TextView body=new TextView(this); body.setTextSize(11); body.setTextColor(Color.rgb(90,100,120)); body.setMaxLines(2); body.setPadding(0,dp(3),0,dp(3));
-        Button cta=new Button(this); cta.setTextSize(11); cta.setMinHeight(dp(36)); cta.setAllCaps(false); cta.setTextColor(Color.rgb(40,60,120));
-        text.addView(headline,new LinearLayout.LayoutParams(-1,0,1)); text.addView(body,new LinearLayout.LayoutParams(-1,0,1)); text.addView(cta,new LinearLayout.LayoutParams(-1,dp(40)));
+        LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(8),0,dp(4),0); text.setLayoutParams(new LinearLayout.LayoutParams(0,-1,1));
+        TextView headline=new TextView(this); headline.setTextSize(13); headline.setTextColor(Color.rgb(20,28,45)); headline.setMaxLines(2); headline.setTypeface(null,android.graphics.Typeface.BOLD);
+        TextView body=new TextView(this); body.setTextSize(10); body.setTextColor(Color.rgb(90,100,120)); body.setMaxLines(2); body.setPadding(0,dp(2),0,dp(2));
+        Button cta=new Button(this); cta.setTextSize(10); cta.setMinHeight(dp(32)); cta.setAllCaps(false); cta.setTextColor(Color.rgb(40,60,120));
+        text.addView(headline,new LinearLayout.LayoutParams(-1,0,1)); text.addView(body,new LinearLayout.LayoutParams(-1,0,1)); text.addView(cta,new LinearLayout.LayoutParams(-1,dp(34)));
         row.addView(text);
         nv.addView(row);
         nv.setMediaView(media); nv.setHeadlineView(headline); nv.setBodyView(body); nv.setCallToActionView(cta); nv.setNativeAd(ad);
-        nativeContainer.addView(nv); nativeContainer.setVisibility(View.VISIBLE);
+        Button hide=new Button(this); hide.setText("Tutup Iklan"); hide.setTextSize(10); hide.setAllCaps(false); hide.setMinHeight(dp(30)); hide.setOnClickListener(v->nativeContainer.setVisibility(View.GONE));
+        wrap.addView(nv); wrap.addView(hide,new LinearLayout.LayoutParams(-1,dp(32)));
+        nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }
     private void showAppOpenIfReady(){
         if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<180000L)return;
@@ -197,7 +200,7 @@ public class MainActivity extends Activity {
                 appOpenShowing=true;
                 if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
                 ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){
-                    @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();appOpenShowing=false;if(bannerContainer!=null)bannerContainer.setVisibility(View.VISIBLE);}
+                    @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);}
                     @Override public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError e){appOpenShowing=false;if(bannerContainer!=null)bannerContainer.setVisibility(View.VISIBLE);}
                 });
                 ad.show(MainActivity.this);

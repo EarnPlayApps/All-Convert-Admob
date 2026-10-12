@@ -106,7 +106,7 @@ public class MainActivity extends Activity {
             Uri u=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f);
             Intent i=new Intent(Intent.ACTION_SEND);i.setType(m);i.putExtra(Intent.EXTRA_STREAM,u);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(Intent.createChooser(i,"Share / Open With"));
-        }catch(Exception e){webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeNativeError('share')",null);}
+        }catch(Exception e){webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('share')",null);}
     }
     private void openFile(String n,String m,byte[] data){
         try{
@@ -130,6 +130,7 @@ public class MainActivity extends Activity {
 
     private void showBanner(){
         if(bannerContainer==null)return;
+        bannerLoaded=false;
         bannerContainer.setVisibility(View.GONE);
         adView=new AdView(this);adView.setAdUnitId(BANNER_ID);
         int width=(int)(getResources().getDisplayMetrics().widthPixels/getResources().getDisplayMetrics().density);
@@ -138,9 +139,11 @@ public class MainActivity extends Activity {
         bannerContainer.addView(adView,new android.widget.FrameLayout.LayoutParams(-1,-2));
         adView.setAdListener(new AdListener(){
             @Override public void onAdLoaded(){
+                bannerLoaded=true;
                 bannerContainer.setVisibility(View.VISIBLE);
             }
             @Override public void onAdFailedToLoad(LoadAdError error){
+                bannerLoaded=false;
                 bannerContainer.removeAllViews();
                 bannerContainer.setVisibility(View.GONE);
             }
@@ -201,7 +204,7 @@ public class MainActivity extends Activity {
                 if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
                 ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){
                     @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);}
-                    @Override public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError e){appOpenShowing=false;if(bannerContainer!=null)bannerContainer.setVisibility(View.VISIBLE);}
+                    @Override public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError e){appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);}
                 });
                 ad.show(MainActivity.this);
             }

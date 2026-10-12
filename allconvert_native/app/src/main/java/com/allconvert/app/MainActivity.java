@@ -130,10 +130,21 @@ public class MainActivity extends Activity {
 
     private void showBanner(){
         if(bannerContainer==null)return;
+        bannerContainer.setVisibility(View.GONE);
         adView=new AdView(this);adView.setAdUnitId(BANNER_ID);
         int width=(int)(getResources().getDisplayMetrics().widthPixels/getResources().getDisplayMetrics().density);
         adView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this,Math.max(320,width)));
-        bannerContainer.removeAllViews();bannerContainer.addView(adView,new android.widget.FrameLayout.LayoutParams(-1,-2));
+        bannerContainer.removeAllViews();
+        bannerContainer.addView(adView,new android.widget.FrameLayout.LayoutParams(-1,-2));
+        adView.setAdListener(new AdListener(){
+            @Override public void onAdLoaded(){
+                bannerContainer.setVisibility(View.VISIBLE);
+            }
+            @Override public void onAdFailedToLoad(LoadAdError error){
+                bannerContainer.removeAllViews();
+                bannerContainer.setVisibility(View.GONE);
+            }
+        });
         adView.loadAd(new AdRequest.Builder().build());
     }
 

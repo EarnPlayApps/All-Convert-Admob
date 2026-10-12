@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
- xmlns:ads="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent">
-<WebView android:id="@+id/webView" android:layout_width="match_parent" android:layout_height="match_parent"/>
-<com.google.android.gms.ads.nativead.NativeAdView android:id="@+id/nativeAdView" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:visibility="gone" android:padding="8dp" android:background="#FFFFFF">
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-<TextView android:id="@+id/nativeHeadline" android:layout_width="match_parent" android:layout_height="wrap_content" android:textStyle="bold" android:textSize="15sp" android:textColor="#111111"/>
-<TextView android:id="@+id/nativeBody" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="#444444"/>
-<TextView android:id="@+id/nativeAdvertiser" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="#777777"/>
-<Button android:id="@+id/nativeCta" android:layout_width="wrap_content" android:layout_height="wrap_content"/>
-</LinearLayout></com.google.android.gms.ads.nativead.NativeAdView></FrameLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+<WebView android:id="@+id/webView" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
+<FrameLayout android:id="@+id/bannerContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:background="#FFFFFF"/>
+</LinearLayout>

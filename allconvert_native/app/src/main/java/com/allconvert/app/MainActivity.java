@@ -103,9 +103,9 @@ public class MainActivity extends Activity {
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(10),dp(4),dp(10),dp(8));
         TextView info=new TextView(this); info.setText("Preview • "+n); info.setTextSize(14); info.setTextColor(Color.rgb(20,28,45)); info.setTypeface(null,android.graphics.Typeface.BOLD); info.setPadding(dp(4),dp(4),dp(4),dp(8));
         root.addView(info,new LinearLayout.LayoutParams(-1,dp(38)));
-        WebView preview=new WebView(this); preview.setBackgroundColor(Color.WHITE); WebSettings ps=preview.getSettings(); ps.setJavaScriptEnabled(false); ps.setDomStorageEnabled(false); ps.setAllowFileAccess(false); ps.setAllowContentAccess(false);
-        String html=new String(data,java.nio.charset.StandardCharsets.UTF_8);
-        preview.loadDataWithBaseURL(null,html,"text/html","UTF-8",null);
+        WebView preview=new WebView(this); preview.setBackgroundColor(Color.WHITE); WebSettings ps=preview.getSettings(); ps.setJavaScriptEnabled(true); ps.setDomStorageEnabled(true); ps.setAllowFileAccess(false); ps.setAllowContentAccess(false); ps.setBuiltInZoomControls(false); ps.setDisplayZoomControls(false);
+        String html=prepareHtmlPreview(data);
+        preview.loadDataWithBaseURL("https://allconvert.local/",html,"text/html","UTF-8",null);
         root.addView(preview,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL); actions.setGravity(Gravity.CENTER); actions.setPadding(0,dp(8),0,0);
         Button download=new Button(this); download.setText("Download"); download.setAllCaps(false);
@@ -119,6 +119,23 @@ public class MainActivity extends Activity {
         share.setOnClickListener(v->shareOrOpen(n,m,data));
         dialog.setOnDismissListener(v->preview.destroy());
         dialog.show();
+    }
+
+    private String prepareHtmlPreview(byte[] data){
+        String html=new String(data,java.nio.charset.StandardCharsets.UTF_8).replace("\uFEFF","");
+        html=html.trim();
+        if(html.startsWith("\u0060\u0060\u0060")){
+            int first=html.indexOf('\n');
+            if(first>=0)html=html.substring(first+1);
+            if(html.endsWith("\u0060\u0060\u0060"))html=html.substring(0,html.length()-3).trim();
+        }
+        if(html.contains("&lt;html") || html.contains("&lt;!doctype") || html.contains("&lt;div") || html.contains("&lt;body")){
+            html=android.text.Html.fromHtml(html,android.text.Html.FROM_HTML_MODE_LEGACY).toString();
+        }
+        if(!html.matches("(?s).*<\\s*(html|!doctype|head|body|div|main|section|table|p|h[1-6])\\b.*")){
+            html="<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"></head><body><pre style=\"white-space:pre-wrap;word-wrap:break-word;font-family:sans-serif;padding:16px\">"+android.text.TextUtils.htmlEncode(html)+"</pre></body></html>";
+        }
+        return html;
     }
 
     private void saveDownload(String n,String m,byte[] data){

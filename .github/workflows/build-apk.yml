@@ -30,7 +30,7 @@ jobs:
           ACTUAL=$(wc -c < app/src/main/assets/index.html)
           test "$ACTUAL" -eq 31823
           grep -q 'ALL CONVERT ADMOB LIVE BANNER' app/src/main/assets/index.html
-          grep -q 'ca-app-pub-9940728659432865/7572128943' app/src/main/assets/index.html
+          grep -q 'ca-app-pub-9940728659432865/6234492932' app/src/main/assets/index.html
           echo "HTML asset restored and verified: $ACTUAL bytes"
 
       - name: Setup Java 17

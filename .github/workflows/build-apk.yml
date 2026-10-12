@@ -42,6 +42,18 @@ jobs:
           grep -q 'ca-app-pub-9940728659432865/1006961841' app/src/main/java/com/allconvert/app/MainActivity.java
           echo "HTML asset and native AdMob IDs verified: $ACTUAL bytes"
 
+      - name: Audit conversion quality engine
+        working-directory: allconvert_native
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=== Canvas export quality calls ==="
+          grep -nE 'toDataURL|toBlob|convertToBlob|quality' app/src/main/assets/index.html | head -120 || true
+          echo "=== Image conversion libraries / formats ==="
+          grep -nEi 'image/(jpeg|webp|avif|png)|\.jpeg|\.jpg|\.webp|\.avif|\.png' app/src/main/assets/index.html | head -160 || true
+          echo "=== Conversion APIs ==="
+          grep -nEi 'jsPDF|html2canvas|mammoth|pdf|docx|xlsx|csv|zip' app/src/main/assets/index.html | head -160 || true
+
       - name: Setup Java 17 (Android build JDK)
         uses: actions/setup-java@v4
         with:

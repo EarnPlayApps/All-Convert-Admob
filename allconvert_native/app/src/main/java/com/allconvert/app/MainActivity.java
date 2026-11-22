@@ -144,7 +144,7 @@ public class MainActivity extends Activity {
         AlertDialog dialog=new AlertDialog.Builder(this)
             .setTitle(title)
             .setView(legalView)
-            .setPositiveButton("Tutup",(d,w)->legalView.destroy())
+            .setPositiveButton("Tutup",(d,w)->{})
             .create();
         dialog.setOnDismissListener(d->legalView.destroy());
         dialog.show();

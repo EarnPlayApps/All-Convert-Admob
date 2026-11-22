@@ -76,7 +76,7 @@ public class MainActivity extends Activity {
     private static final String PREFS_ADS="all_convert_ads";
     private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView settingsEntry, historyEntry; private BillingClient billingClient; private final Map<String,ProductDetails> proProducts=new HashMap<>(); private boolean isPro=false; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView settingsEntry, historyEntry; private BillingClient billingClient; private final Map<String,ProductDetails> proProducts=new HashMap<>(); private volatile boolean isPro=false; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
     private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;

@@ -256,7 +256,7 @@ public class MainActivity extends Activity {
             conn=(HttpURLConnection)new URL(SUPABASE_URL+path).openConnection();
             conn.setRequestMethod(method);conn.setConnectTimeout(20000);conn.setReadTimeout(30000);
             conn.setRequestProperty("apikey",SUPABASE_PUBLISHABLE_KEY);
-            String token=(path.startsWith("/auth/v1/")||cloudAccessToken==null||cloudAccessToken.isEmpty())?SUPABASE_PUBLISHABLE_KEY:cloudAccessToken;
+            String token=(path.startsWith("/auth/v1/signup")||path.startsWith("/auth/v1/token")||cloudAccessToken==null||cloudAccessToken.isEmpty())?SUPABASE_PUBLISHABLE_KEY:cloudAccessToken;
             conn.setRequestProperty("Authorization","Bearer "+token);
             conn.setRequestProperty("Accept","application/json");
             if(contentType!=null)conn.setRequestProperty("Content-Type",contentType);
@@ -285,9 +285,13 @@ public class MainActivity extends Activity {
         storeCloudSession(new JSONObject(new String(result,StandardCharsets.UTF_8)));
     }
     private void logoutCloud(){
-        cloudAccessToken="";cloudRefreshToken="";cloudUserId="";
-        if(cloudPrefs!=null)cloudPrefs.edit().clear().apply();
-        Toast.makeText(this,"Akaun Cloud telah dilog keluar. Fail setempat kekal pada telefon.",Toast.LENGTH_LONG).show();
+        new Thread(()->{
+            try{if(!cloudAccessToken.isEmpty())cloudRequest("POST","/auth/v1/logout",null,null);}
+            catch(Exception ignored){}
+            cloudAccessToken="";cloudRefreshToken="";cloudUserId="";
+            if(cloudPrefs!=null)cloudPrefs.edit().clear().apply();
+            runOnUiThread(()->Toast.makeText(this,"Akaun Cloud telah dilog keluar. Fail setempat kekal pada telefon.",Toast.LENGTH_LONG).show());
+        }).start();
     }
     private void showCloudAccountDialog(){
         LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(dp(20),dp(8),dp(20),dp(4));

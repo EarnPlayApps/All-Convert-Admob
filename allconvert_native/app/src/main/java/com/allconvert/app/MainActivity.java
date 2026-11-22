@@ -291,12 +291,12 @@ public class MainActivity extends Activity {
         nv.addView(row);
         nv.setMediaView(media); nv.setHeadlineView(headline); nv.setBodyView(body); nv.setCallToActionView(cta); nv.setNativeAd(ad);
         TextView hide=new TextView(this);
-        hide.setText("⌃  Hide ad"); hide.setTextSize(11); hide.setTypeface(null,android.graphics.Typeface.BOLD);
+        hide.setText("Sembunyikan iklan"); hide.setTextSize(11); hide.setTypeface(null,android.graphics.Typeface.BOLD);
         hide.setTextColor(Color.rgb(35,91,180)); hide.setGravity(Gravity.CENTER);
         hide.setPadding(dp(13),0,dp(13),0); hide.setMinHeight(dp(30));
         android.graphics.drawable.GradientDrawable pill=new android.graphics.drawable.GradientDrawable();
         pill.setColor(Color.rgb(232,241,255)); pill.setCornerRadius(dp(18)); pill.setStroke(dp(1),Color.rgb(205,222,248));
-        hide.setBackground(pill); hide.setContentDescription("Hide native advertisement");
+        hide.setBackground(pill); hide.setContentDescription("Sembunyikan iklan native");
         wrap.addView(nv);
         LinearLayout.LayoutParams hideParams=new LinearLayout.LayoutParams(-2,dp(30));
         hideParams.gravity=Gravity.RIGHT; hideParams.topMargin=dp(4);
@@ -305,8 +305,8 @@ public class MainActivity extends Activity {
         hide.setOnClickListener(v->{
             nativeHidden[0]=!nativeHidden[0];
             nv.setVisibility(nativeHidden[0]?View.GONE:View.VISIBLE);
-            hide.setText(nativeHidden[0]?"⌄  Show ad":"⌃  Hide ad");
-            hide.setContentDescription(nativeHidden[0]?"Show native advertisement":"Hide native advertisement");
+            hide.setText(nativeHidden[0]?"Tunjukkan iklan":"Sembunyikan iklan");
+            hide.setContentDescription(nativeHidden[0]?"Tunjukkan iklan native":"Sembunyikan iklan native");
         });
         nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }

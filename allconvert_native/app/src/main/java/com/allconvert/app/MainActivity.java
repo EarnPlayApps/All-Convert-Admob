@@ -48,6 +48,20 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Base64;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import com.android.billingclient.api.AcknowledgePurchaseParams;
+import com.android.billingclient.api.BillingClient;
+import com.android.billingclient.api.BillingFlowParams;
+import com.android.billingclient.api.BillingResult;
+import com.android.billingclient.api.ProductDetails;
+import com.android.billingclient.api.Purchase;
+import com.android.billingclient.api.QueryProductDetailsParams;
+import com.android.billingclient.api.QueryPurchasesParams;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class MainActivity extends Activity {
@@ -62,7 +76,7 @@ public class MainActivity extends Activity {
     private static final String PREFS_ADS="all_convert_ads";
     private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView settingsEntry; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView settingsEntry, historyEntry; private BillingClient billingClient; private final Map<String,ProductDetails> proProducts=new HashMap<>(); private boolean isPro=false; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
     private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;
@@ -70,8 +84,10 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b){
         super.onCreate(b); setContentView(R.layout.activity_main);
         lastAppOpenShown=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getLong(PREF_LAST_APP_OPEN,0L);
-        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); settingsEntry=findViewById(R.id.settingsEntry); rewardButton=null;
+        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); settingsEntry=findViewById(R.id.settingsEntry); historyEntry=findViewById(R.id.historyEntry); rewardButton=null;
         settingsEntry.setOnClickListener(v->showSettingsDialog());
+        historyEntry.setOnClickListener(v->showHistoryDialog());
+        initializeBilling();
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
         webView.addJavascriptInterface(new AndroidBridge(),"AndroidBridge");
@@ -83,6 +99,117 @@ public class MainActivity extends Activity {
         webView.loadUrl("file:///android_asset/index.html");
         setupConsentManagement();
     }
+
+
+    private static final String[] PRO_SUBS={"allconvert_pro_monthly","allconvert_pro_yearly"};
+    private static final String PRO_LIFETIME="allconvert_pro_lifetime";
+    private static final String HISTORY_PREFS="all_convert_history";
+    private static final String HISTORY_KEY="records";
+
+    private void initializeBilling(){
+        billingClient=BillingClient.newBuilder(this).setListener(this::onPurchasesUpdated).enablePendingPurchases().build();
+        billingClient.startConnection(new com.android.billingclient.api.BillingClientStateListener(){
+            @Override public void onBillingSetupFinished(BillingResult result){if(result.getResponseCode()==BillingClient.BillingResponseCode.OK){queryProPurchases();queryProProducts();}}
+            @Override public void onBillingServiceDisconnected(){}
+        });
+    }
+    private void queryProProducts(){
+        if(billingClient==null||!billingClient.isReady())return;
+        List<QueryProductDetailsParams.Product> subs=new ArrayList<>();
+        for(String id:PRO_SUBS)subs.add(QueryProductDetailsParams.Product.newBuilder().setProductId(id).setProductType(BillingClient.ProductType.SUBS).build());
+        billingClient.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(subs).build(),(result,details)->{if(result.getResponseCode()==BillingClient.BillingResponseCode.OK)for(ProductDetails d:details)proProducts.put(d.getProductId(),d);});
+        List<QueryProductDetailsParams.Product> inapp=new ArrayList<>();
+        inapp.add(QueryProductDetailsParams.Product.newBuilder().setProductId(PRO_LIFETIME).setProductType(BillingClient.ProductType.INAPP).build());
+        billingClient.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(inapp).build(),(result,details)->{if(result.getResponseCode()==BillingClient.BillingResponseCode.OK)for(ProductDetails d:details)proProducts.put(d.getProductId(),d);});
+    }
+    private void queryProPurchases(){
+        if(billingClient==null||!billingClient.isReady())return;
+        final boolean[] active={false,false};
+        billingClient.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build(),(result,purchases)->{active[0]=hasValidProPurchase(result,purchases);setProState(active[0]||active[1]);});
+        billingClient.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build(),(result,purchases)->{active[1]=hasValidProPurchase(result,purchases);setProState(active[0]||active[1]);});
+    }
+    private boolean hasValidProPurchase(BillingResult result,List<Purchase> purchases){
+        if(result.getResponseCode()!=BillingClient.BillingResponseCode.OK||purchases==null)return false;
+        boolean found=false;
+        for(Purchase purchase:purchases){
+            if(purchase.getPurchaseState()!=Purchase.PurchaseState.PURCHASED)continue;
+            boolean matches=false;
+            for(String product:purchase.getProducts())if(product.equals(PRO_LIFETIME)||product.equals(PRO_SUBS[0])||product.equals(PRO_SUBS[1]))matches=true;
+            if(!matches)continue;
+            found=true;
+            if(!purchase.isAcknowledged())billingClient.acknowledgePurchase(AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.getPurchaseToken()).build(),ack->{});
+        }
+        return found;
+    }
+    private void onPurchasesUpdated(BillingResult result,List<Purchase> purchases){
+        if(result.getResponseCode()==BillingClient.BillingResponseCode.OK){if(purchases!=null)hasValidProPurchase(result,purchases);queryProPurchases();}
+        else if(result.getResponseCode()!=BillingClient.BillingResponseCode.USER_CANCELED)Toast.makeText(this,"Pembelian tidak berjaya. Cuba lagi.",Toast.LENGTH_LONG).show();
+    }
+    private void setProState(boolean enabled){runOnUiThread(()->{isPro=enabled;if(historyEntry!=null)historyEntry.setVisibility(enabled?View.VISIBLE:View.GONE);});}
+    private boolean billingClientReady(){return billingClient!=null&&billingClient.isReady();}
+    private void showProPlansDialog(){
+        if(!billingClientReady()){Toast.makeText(this,"Sambungan Google Play belum tersedia. Cuba lagi sebentar.",Toast.LENGTH_LONG).show();return;}
+        List<ProductDetails> products=new ArrayList<>();
+        for(String id:new String[]{PRO_SUBS[0],PRO_SUBS[1],PRO_LIFETIME})if(proProducts.containsKey(id))products.add(proProducts.get(id));
+        if(products.isEmpty()){queryProProducts();Toast.makeText(this,"Pelan Pro belum tersedia di Google Play. Pastikan produk telah diaktifkan di Play Console.",Toast.LENGTH_LONG).show();return;}
+        String[] labels=new String[products.size()];
+        for(int i=0;i<products.size();i++){
+            ProductDetails d=products.get(i);String price="Harga dipaparkan oleh Google Play";
+            if(d.getOneTimePurchaseOfferDetails()!=null)price=d.getOneTimePurchaseOfferDetails().getFormattedPrice();
+            else if(d.getSubscriptionOfferDetails()!=null&&!d.getSubscriptionOfferDetails().isEmpty()){
+                List<ProductDetails.PricingPhase> phases=d.getSubscriptionOfferDetails().get(0).getPricingPhases().getPricingPhaseList();
+                if(!phases.isEmpty())price=phases.get(phases.size()-1).getFormattedPrice();
+            }
+            labels[i]=d.getName()+"  •  "+price;
+        }
+        new AlertDialog.Builder(this).setTitle("Pilih pelan All Convert Pro").setItems(labels,(dialog,which)->launchProPurchase(products.get(which))).setNegativeButton("Tutup",null).show();
+    }
+    private void launchProPurchase(ProductDetails product){
+        BillingFlowParams.ProductDetailsParams.Builder detail=BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(product);
+        if(BillingClient.ProductType.SUBS.equals(product.getProductType())){
+            if(product.getSubscriptionOfferDetails()==null||product.getSubscriptionOfferDetails().isEmpty()){Toast.makeText(this,"Tawaran langganan tidak tersedia.",Toast.LENGTH_LONG).show();return;}
+            detail.setOfferToken(product.getSubscriptionOfferDetails().get(0).getOfferToken());
+        }
+        BillingFlowParams params=BillingFlowParams.newBuilder().setProductDetailsParamsList(java.util.Collections.singletonList(detail.build())).build();
+        billingClient.launchBillingFlow(this,params);
+    }
+    private JSONArray readHistory(){try{return new JSONArray(getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).getString(HISTORY_KEY,"[]"));}catch(Exception e){return new JSONArray();}}
+    private void recordHistory(String name,String type,byte[] data){
+        if(!isPro||data==null||data.length==0)return;
+        try{
+            File dir=new File(getFilesDir(),"history");if(!dir.exists()&&!dir.mkdirs())return;
+            String stored=System.currentTimeMillis()+"_"+UUID.randomUUID().toString()+".bin";
+            try(FileOutputStream out=new FileOutputStream(new File(dir,stored))){out.write(data);}
+            JSONArray old=readHistory(),next=new JSONArray();
+            JSONObject item=new JSONObject();item.put("name",name);item.put("mime",type);item.put("file",stored);item.put("time",System.currentTimeMillis());item.put("size",data.length);next.put(item);
+            for(int i=0;i<old.length()&&next.length()<100;i++)next.put(old.getJSONObject(i));
+            for(int i=99;i<old.length();i++){JSONObject stale=old.optJSONObject(i);if(stale!=null)new File(dir,stale.optString("file","")).delete();}
+            getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,next.toString()).apply();
+        }catch(Exception ignored){}
+    }
+    private void showHistoryDialog(){
+        if(!isPro){showProPlansDialog();return;}
+        JSONArray records=readHistory();
+        if(records.length()==0){new AlertDialog.Builder(this).setTitle("History Penukaran").setMessage("Belum ada fail dalam History. Fail yang berjaya disimpan atau dikongsi akan muncul di sini.").setPositiveButton("Tutup",null).show();return;}
+        String[] labels=new String[records.length()];
+        for(int i=0;i<records.length();i++){JSONObject item=records.optJSONObject(i);labels[i]=(item==null?"Fail":item.optString("name","Fail"))+"  •  "+android.text.format.DateFormat.format("dd/MM/yy HH:mm",item==null?System.currentTimeMillis():item.optLong("time"));}
+        new AlertDialog.Builder(this).setTitle("History Penukaran").setItems(labels,(d,which)->showHistoryItem(which)).setNegativeButton("Tutup",null).show();
+    }
+    private void showHistoryItem(int index){
+        JSONArray records=readHistory();JSONObject item=records.optJSONObject(index);if(item==null)return;
+        String[] actions={"Maklumat fail","Download semula","Share","Padam daripada History"};
+        new AlertDialog.Builder(this).setTitle(item.optString("name","Fail")).setItems(actions,(dialog,choice)->{
+            File file=new File(new File(getFilesDir(),"history"),item.optString("file",""));
+            if(choice==3){file.delete();JSONArray kept=new JSONArray();for(int i=0;i<records.length();i++)if(i!=index)kept.put(records.optJSONObject(i));getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,kept.toString()).apply();showHistoryDialog();return;}
+            try{
+                byte[] bytes=readFileBytes(file);String name=item.optString("name","converted_file"),type=item.optString("mime","application/octet-stream");
+                if(choice==0)new AlertDialog.Builder(this).setTitle("Maklumat fail").setMessage(name+"\n"+type+"\n"+android.text.format.Formatter.formatShortFileSize(this,bytes.length)).setPositiveButton("Tutup",null).show();
+                else if(choice==1)saveDownload(name,type,bytes);
+                else shareOrOpen(name,type,bytes);
+            }catch(Exception e){Toast.makeText(this,"Fail History tidak dapat dibaca.",Toast.LENGTH_LONG).show();}
+        }).setNegativeButton("Kembali",null).show();
+    }
+    private byte[] readFileBytes(File file)throws Exception{try(InputStream in=new java.io.FileInputStream(file);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))>0)out.write(buffer,0,n);return out.toByteArray();}}
 
     private void setupConsentManagement(){
         consentInformation=UserMessagingPlatform.getConsentInformation(this);
@@ -128,6 +255,8 @@ public class MainActivity extends Activity {
         version.setPadding(dp(4),0,dp(4),dp(12));
         panel.addView(version,new LinearLayout.LayoutParams(-1,-2));
         AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Tetapan").setView(panel).setNegativeButton("Tutup",null).create();
+        addInfoRow(panel,"Langganan Pro","Buka ciri premium dan History",()->{dialog.dismiss();showProPlansDialog();});
+        addInfoRow(panel,"Pulihkan Pembelian","Semak semula langganan atau pembelian terdahulu",()->{dialog.dismiss();queryProPurchases();Toast.makeText(this,"Sedang menyemak pembelian Google Play…",Toast.LENGTH_SHORT).show();});
         addInfoRow(panel,"Dasar Privasi","Cara maklumat dan data dikendalikan",()->{dialog.dismiss();showLegalPage("privacy_policy.html","Dasar Privasi");});
         addInfoRow(panel,"Terma Penggunaan","Syarat dan peraturan penggunaan aplikasi",()->{dialog.dismiss();showLegalPage("terms.html","Terma Penggunaan");});
         if(consentInformation!=null && consentInformation.getPrivacyOptionsRequirementStatus()==ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED){
@@ -195,12 +324,12 @@ public class MainActivity extends Activity {
 
     private class AndroidBridge{
         @JavascriptInterface public void download(String n,String m,String b){
-            String name=safe(n); String type=mime(m); byte[] data=dec(b);
+            String name=safe(n); String type=mime(m); byte[] data=dec(b); recordHistory(name,type,data);
             if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}else{saveDownload(name,type,data);}
         }
-        @JavascriptInterface public void saveAs(String n,String m,String b){pendingBytes=dec(b);Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,safe(n));startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}
-        @JavascriptInterface public void share(String n,String m,String b){shareOrOpen(safe(n),mime(m),dec(b));}
-        @JavascriptInterface public void openWith(String n,String m,String b){openFile(safe(n),mime(m),dec(b));}
+        @JavascriptInterface public void saveAs(String n,String m,String b){String name=safe(n),type=mime(m);pendingBytes=dec(b);recordHistory(name,type,pendingBytes);Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,safe(n));startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}
+        @JavascriptInterface public void share(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);recordHistory(name,type,data);shareOrOpen(name,type,data);}
+        @JavascriptInterface public void openWith(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);recordHistory(name,type,data);openFile(name,type,data);}
         @JavascriptInterface public void showRewarded(){runOnUiThread(MainActivity.this::showRewardedIfReady);}
     }
     private byte[] dec(String s){try{return Base64.getDecoder().decode(s);}catch(Exception e){return new byte[0];}}
@@ -406,5 +535,5 @@ public class MainActivity extends Activity {
     }
     @Override protected void onStart(){super.onStart(); if(firstSession){firstSession=false;return;} new android.os.Handler().postDelayed(()->showAppOpenIfReady(),800);}
     @Override protected void onNewIntent(Intent i){super.onNewIntent(i);setIntent(i);handleIncoming(i);}
-    @Override protected void onDestroy(){if(filePathCallback!=null){filePathCallback.onReceiveValue(null);filePathCallback=null;}if(adView!=null)adView.destroy();if(nativeAd!=null)nativeAd.destroy();if(webView!=null)webView.destroy();super.onDestroy();}
+    @Override protected void onDestroy(){if(filePathCallback!=null){filePathCallback.onReceiveValue(null);filePathCallback=null;}if(billingClient!=null&&billingClient.isReady())billingClient.endConnection();if(adView!=null)adView.destroy();if(nativeAd!=null)nativeAd.destroy();if(webView!=null)webView.destroy();super.onDestroy();}
 }

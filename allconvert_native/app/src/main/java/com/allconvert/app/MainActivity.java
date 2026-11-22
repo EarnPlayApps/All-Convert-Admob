@@ -297,10 +297,11 @@ public class MainActivity extends Activity {
         LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(dp(20),dp(8),dp(20),dp(4));
         EditText email=new EditText(this);email.setSingleLine(true);email.setHint("E-mel");email.setInputType(33);panel.addView(email);
         EditText password=new EditText(this);password.setSingleLine(true);password.setHint("Kata laluan");password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);panel.addView(password);
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Akaun All Convert Cloud").setMessage("Log masuk atau daftar akaun untuk menyimpan History Pro dalam cloud dan memulihkannya pada telefon lain.").setView(panel).setPositiveButton("Log Masuk",null).setNeutralButton("Daftar Akaun",null).setNegativeButton("Batal",null).create();
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Akaun All Convert Cloud").setMessage("Log masuk atau daftar akaun untuk menyimpan History Pro dalam cloud dan memulihkannya pada telefon lain.").setView(panel).setPositiveButton("Log Masuk",null).setNeutralButton("Daftar Akaun",null).setNegativeButton("History Peranti",null).create();
         dialog.setOnShowListener(v->{
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<6){Toast.makeText(this,"Masukkan e-mel dan kata laluan sekurang-kurangnya 6 aksara.",Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,false);});
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<6){Toast.makeText(this,"Masukkan e-mel dan kata laluan sekurang-kurangnya 6 aksara.",Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,true);});
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(x->{dialog.dismiss();showLocalHistoryDialog();});
         });dialog.show();
     }
     private void authenticateCloud(String email,String password,boolean register){

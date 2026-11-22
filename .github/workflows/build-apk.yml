@@ -30,6 +30,10 @@ jobs:
           gunzip -c /tmp/index.gz > app/src/main/assets/index.html
           sed -i 's/ca-app-pub-9940728659432865~7835018675/ca-app-pub-9940728659432865~2706136459/g; s/ca-app-pub-9940728659432865\/7572128943/ca-app-pub-9940728659432865\/6234492932/g' app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
+          test -s app/src/main/assets/privacy_policy.html
+          test -s app/src/main/assets/terms.html
+          grep -q "Dasar Privasi All Convert" app/src/main/assets/privacy_policy.html
+          grep -q "Terma Penggunaan All Convert" app/src/main/assets/terms.html
           ACTUAL=$(wc -c < app/src/main/assets/index.html)
           test "$ACTUAL" -ge 30000
           sed -i 's|#admobBanner{width:100%;min-height:52px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden;border-radius:12px;background:rgba(255,255,255,.025)}|#admobBanner{display:none!important;min-height:0!important;margin:0!important}|' app/src/main/assets/index.html

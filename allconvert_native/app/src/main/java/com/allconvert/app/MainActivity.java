@@ -9,8 +9,13 @@ import android.widget.EditText;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import androidx.security.crypto.EncryptedSharedPreferences;
-import androidx.security.crypto.MasterKey;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyProperties;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import java.security.KeyStore;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -210,14 +215,32 @@ public class MainActivity extends Activity {
         }catch(Exception ignored){}
     }
 
+    private SecretKey getCloudEncryptionKey()throws Exception{
+        KeyStore keyStore=KeyStore.getInstance("AndroidKeyStore");keyStore.load(null);
+        String alias="allconvert_cloud_session_key";
+        if(!keyStore.containsAlias(alias)){
+            KeyGenerator generator=KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,"AndroidKeyStore");
+            generator.init(new KeyGenParameterSpec.Builder(alias,KeyProperties.PURPOSE_ENCRYPT|KeyProperties.PURPOSE_DECRYPT).setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).setRandomizedEncryptionRequired(true).build());
+            generator.generateKey();
+        }
+        return (SecretKey)keyStore.getKey(alias,null);
+    }
+    private String encryptCloudValue(String value)throws Exception{
+        if(value==null||value.isEmpty())return "";
+        Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");cipher.init(Cipher.ENCRYPT_MODE,getCloudEncryptionKey());
+        byte[] iv=cipher.getIV(),encrypted=cipher.doFinal(value.getBytes(StandardCharsets.UTF_8)),combined=new byte[iv.length+encrypted.length];
+        System.arraycopy(iv,0,combined,0,iv.length);System.arraycopy(encrypted,0,combined,iv.length,encrypted.length);
+        return android.util.Base64.encodeToString(combined,android.util.Base64.NO_WRAP);
+    }
+    private String decryptCloudValue(String value){
+        if(value==null||value.isEmpty())return "";
+        try{byte[] combined=android.util.Base64.decode(value,android.util.Base64.NO_WRAP);byte[] iv=java.util.Arrays.copyOfRange(combined,0,12),encrypted=java.util.Arrays.copyOfRange(combined,12,combined.length);Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");cipher.init(Cipher.DECRYPT_MODE,getCloudEncryptionKey(),new GCMParameterSpec(128,iv));return new String(cipher.doFinal(encrypted),StandardCharsets.UTF_8);}catch(Exception e){return "";}
+    }
     private void initializeCloudSession(){
-        try{
-            MasterKey masterKey=new MasterKey.Builder(this).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build();
-            cloudPrefs=EncryptedSharedPreferences.create(this,CLOUD_PREFS,masterKey,EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
-            cloudAccessToken=cloudPrefs.getString("access_token","");
-            cloudRefreshToken=cloudPrefs.getString("refresh_token","");
-            cloudUserId=cloudPrefs.getString("user_id","");
-        }catch(Exception e){cloudPrefs=getSharedPreferences(CLOUD_PREFS,MODE_PRIVATE);cloudAccessToken=cloudPrefs.getString("access_token","");cloudRefreshToken=cloudPrefs.getString("refresh_token","");cloudUserId=cloudPrefs.getString("user_id","");}
+        cloudPrefs=getSharedPreferences(CLOUD_PREFS,MODE_PRIVATE);
+        cloudAccessToken=decryptCloudValue(cloudPrefs.getString("access_token",""));
+        cloudRefreshToken=decryptCloudValue(cloudPrefs.getString("refresh_token",""));
+        cloudUserId=cloudPrefs.getString("user_id","");
     }
     private void storeCloudSession(JSONObject session)throws Exception{
         JSONObject user=session.optJSONObject("user");
@@ -225,7 +248,7 @@ public class MainActivity extends Activity {
         String uid=user==null?"":user.optString("id","");
         if(access.isEmpty()||uid.isEmpty())throw new Exception("Sesi akaun belum disahkan. Semak e-mel pengesahan jika diminta.");
         cloudAccessToken=access;cloudRefreshToken=refresh;cloudUserId=uid;
-        if(cloudPrefs!=null)cloudPrefs.edit().putString("access_token",access).putString("refresh_token",refresh).putString("user_id",uid).apply();
+        if(cloudPrefs!=null)cloudPrefs.edit().putString("access_token",encryptCloudValue(access)).putString("refresh_token",encryptCloudValue(refresh)).putString("user_id",uid).apply();
     }
     private byte[] cloudRequest(String method,String path,byte[] body,String contentType,boolean retry)throws Exception{
         HttpURLConnection conn=null;

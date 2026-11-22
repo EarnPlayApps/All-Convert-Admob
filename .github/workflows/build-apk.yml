@@ -36,6 +36,11 @@ jobs:
           grep -q "Terma Penggunaan All Convert" app/src/main/assets/terms.html
           grep -q "showLegalPage" app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q "settingsEntry" app/src/main/res/layout/activity_main.xml
+          grep -q "historyEntry" app/src/main/res/layout/activity_main.xml
+          grep -q "allconvert_pro_monthly" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "recordHistory" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "showHistoryDialog" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "com.android.billingclient:billing:6.2.1" app/build.gradle
           ACTUAL=$(wc -c < app/src/main/assets/index.html)
           test "$ACTUAL" -ge 30000
           sed -i 's|#admobBanner{width:100%;min-height:52px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden;border-radius:12px;background:rgba(255,255,255,.025)}|#admobBanner{display:none!important;min-height:0!important;margin:0!important}|' app/src/main/assets/index.html

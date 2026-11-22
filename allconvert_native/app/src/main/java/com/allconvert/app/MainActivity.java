@@ -275,13 +275,14 @@ public class MainActivity extends Activity {
     private void renderNative(NativeAd ad){
         if(nativeContainer==null)return;
         nativeContainer.removeAllViews();
-        LinearLayout wrap=new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL); wrap.setBackgroundColor(Color.WHITE);
+        LinearLayout wrap=new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.setPadding(dp(8),dp(6),dp(8),dp(5)); wrap.setBackgroundColor(Color.rgb(247,250,255));
         NativeAdView nv=new NativeAdView(this);
         nv.setLayoutParams(new LinearLayout.LayoutParams(-1,dp(128)));
-        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(8),dp(4),dp(8),dp(4));
-        com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(120),dp(120)));
+        LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(4),dp(3),dp(4),dp(3));
+        com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(112),dp(112)));
         row.addView(media);
-        LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(8),0,dp(4),0); text.setLayoutParams(new LinearLayout.LayoutParams(0,-1,1));
+        LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(9),0,dp(4),0); text.setLayoutParams(new LinearLayout.LayoutParams(0,-1,1));
         TextView headline=new TextView(this); headline.setTextSize(13); headline.setTextColor(Color.rgb(20,28,45)); headline.setMaxLines(2); headline.setTypeface(null,android.graphics.Typeface.BOLD);
         TextView body=new TextView(this); body.setTextSize(10); body.setTextColor(Color.rgb(90,100,120)); body.setMaxLines(2); body.setPadding(0,dp(2),0,dp(2));
         Button cta=new Button(this); cta.setTextSize(10); cta.setMinHeight(dp(32)); cta.setAllCaps(false); cta.setTextColor(Color.rgb(40,60,120));
@@ -289,21 +290,23 @@ public class MainActivity extends Activity {
         row.addView(text);
         nv.addView(row);
         nv.setMediaView(media); nv.setHeadlineView(headline); nv.setBodyView(body); nv.setCallToActionView(cta); nv.setNativeAd(ad);
-        android.widget.ImageButton hide=new android.widget.ImageButton(this);
-        hide.setImageResource(android.R.drawable.arrow_up_float);
-        hide.setContentDescription("Sembunyikan iklan");
-        hide.setBackgroundColor(Color.TRANSPARENT);
-        hide.setPadding(dp(8),dp(2),dp(8),dp(2));
+        TextView hide=new TextView(this);
+        hide.setText("⌃  Hide ad"); hide.setTextSize(11); hide.setTypeface(null,android.graphics.Typeface.BOLD);
+        hide.setTextColor(Color.rgb(35,91,180)); hide.setGravity(Gravity.CENTER);
+        hide.setPadding(dp(13),0,dp(13),0); hide.setMinHeight(dp(30));
+        android.graphics.drawable.GradientDrawable pill=new android.graphics.drawable.GradientDrawable();
+        pill.setColor(Color.rgb(232,241,255)); pill.setCornerRadius(dp(18)); pill.setStroke(dp(1),Color.rgb(205,222,248));
+        hide.setBackground(pill); hide.setContentDescription("Hide native advertisement");
         wrap.addView(nv);
-        LinearLayout.LayoutParams hideParams=new LinearLayout.LayoutParams(-1,dp(32));
-        hideParams.gravity=Gravity.CENTER_HORIZONTAL;
+        LinearLayout.LayoutParams hideParams=new LinearLayout.LayoutParams(-2,dp(30));
+        hideParams.gravity=Gravity.RIGHT; hideParams.topMargin=dp(4);
         wrap.addView(hide,hideParams);
         final boolean[] nativeHidden={false};
         hide.setOnClickListener(v->{
             nativeHidden[0]=!nativeHidden[0];
             nv.setVisibility(nativeHidden[0]?View.GONE:View.VISIBLE);
-            hide.setImageResource(nativeHidden[0]?android.R.drawable.arrow_down_float:android.R.drawable.arrow_up_float);
-            hide.setContentDescription(nativeHidden[0]?"Tunjukkan iklan":"Sembunyikan iklan");
+            hide.setText(nativeHidden[0]?"⌄  Show ad":"⌃  Hide ad");
+            hide.setContentDescription(nativeHidden[0]?"Show native advertisement":"Hide native advertisement");
         });
         nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }

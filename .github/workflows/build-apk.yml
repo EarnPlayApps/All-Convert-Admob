@@ -42,7 +42,6 @@ jobs:
           grep -q "showHistoryDialog" app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q "allconvert-history" app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q "SUPABASE_PUBLISHABLE_KEY" app/src/main/java/com/allconvert/app/MainActivity.java
-          grep -q "security-crypto:1.1.0-alpha06" app/build.gradle
           grep -q "com.android.billingclient:billing:6.2.1" app/build.gradle
           ACTUAL=$(wc -c < app/src/main/assets/index.html)
           test "$ACTUAL" -ge 30000

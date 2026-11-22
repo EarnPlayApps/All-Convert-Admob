@@ -30,6 +30,9 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.MobileAds;
+import com.google.android.ump.ConsentInformation;
+import com.google.android.ump.ConsentRequestParameters;
+import com.google.android.ump.UserMessagingPlatform;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
@@ -59,7 +62,7 @@ public class MainActivity extends Activity {
     private static final String PREFS_ADS="all_convert_ads";
     private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView privacyOptionsEntry; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
     private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;
@@ -67,7 +70,8 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b){
         super.onCreate(b); setContentView(R.layout.activity_main);
         lastAppOpenShown=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getLong(PREF_LAST_APP_OPEN,0L);
-        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); rewardButton=null;
+        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); privacyOptionsEntry=findViewById(R.id.privacyOptionsEntry); rewardButton=null;
+        privacyOptionsEntry.setOnClickListener(v->showPrivacyOptions());
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
         webView.addJavascriptInterface(new AndroidBridge(),"AndroidBridge");
@@ -77,10 +81,44 @@ public class MainActivity extends Activity {
             try{startActivityForResult(p.createIntent(),FILE_CHOOSER_REQUEST);return true;}catch(Exception e){filePathCallback=null;cb.onReceiveValue(null);return false;}
         }});
         webView.loadUrl("file:///android_asset/index.html");
+        setupConsentManagement();
+    }
+
+    private void setupConsentManagement(){
+        consentInformation=UserMessagingPlatform.getConsentInformation(this);
+        ConsentRequestParameters params=new ConsentRequestParameters.Builder().build();
+        consentInformation.requestConsentInfoUpdate(this,params,()->{
+            UserMessagingPlatform.loadAndShowConsentFormIfRequired(this,error->{
+                updatePrivacyOptionsEntry();
+                if(consentInformation.canRequestAds()) initializeAds();
+            });
+        },error->{
+            updatePrivacyOptionsEntry();
+            if(consentInformation.canRequestAds()) initializeAds();
+        });
+    }
+
+    private void initializeAds(){
+        if(adsInitialized)return;
+        adsInitialized=true;
         MobileAds.initialize(this,status->runOnUiThread(()->{
             showBanner(); loadInterstitial(); loadRewarded(); loadNative();
             new android.os.Handler().postDelayed(()->showAppOpenIfReady(),900);
         }));
+    }
+
+    private void updatePrivacyOptionsEntry(){
+        if(privacyOptionsEntry==null||consentInformation==null)return;
+        boolean required=consentInformation.getPrivacyOptionsRequirementStatus()==ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED;
+        privacyOptionsEntry.setVisibility(required?View.VISIBLE:View.GONE);
+    }
+
+    private void showPrivacyOptions(){
+        if(consentInformation==null)return;
+        UserMessagingPlatform.showPrivacyOptionsForm(this,error->{
+            if(error!=null)Toast.makeText(this,"Tetapan privasi tidak dapat dibuka. Cuba lagi.",Toast.LENGTH_SHORT).show();
+            updatePrivacyOptionsEntry();
+        });
     }
 
     private class AndroidBridge{
@@ -270,6 +308,7 @@ public class MainActivity extends Activity {
         nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }
     private void showAppOpenIfReady(){
+        if(!adsInitialized || consentInformation==null || !consentInformation.canRequestAds())return;
         if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<APP_OPEN_COOLDOWN_MS)return;
         com.google.android.gms.ads.appopen.AppOpenAd.load(this,APP_OPEN_ID,new AdRequest.Builder().build(),new com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback(){
             @Override public void onAdLoaded(com.google.android.gms.ads.appopen.AppOpenAd ad){

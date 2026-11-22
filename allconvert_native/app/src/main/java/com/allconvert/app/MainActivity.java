@@ -105,6 +105,8 @@ public class MainActivity extends Activity {
     private static final String PRO_LIFETIME="allconvert_pro_lifetime";
     private static final String HISTORY_PREFS="all_convert_history";
     private static final String HISTORY_KEY="records";
+    private static final int MAX_HISTORY_ITEMS=50;
+    private static final long MAX_HISTORY_BYTES=200L*1024L*1024L;
 
     private void initializeBilling(){
         billingClient=BillingClient.newBuilder(this).setListener(this::onPurchasesUpdated).enablePendingPurchases().build();
@@ -181,9 +183,14 @@ public class MainActivity extends Activity {
             String stored=System.currentTimeMillis()+"_"+UUID.randomUUID().toString()+".bin";
             try(FileOutputStream out=new FileOutputStream(new File(dir,stored))){out.write(data);}
             JSONArray old=readHistory(),next=new JSONArray();
+            long totalBytes=data.length;
             JSONObject item=new JSONObject();item.put("name",name);item.put("mime",type);item.put("file",stored);item.put("time",System.currentTimeMillis());item.put("size",data.length);next.put(item);
-            for(int i=0;i<old.length()&&next.length()<100;i++)next.put(old.getJSONObject(i));
-            for(int i=99;i<old.length();i++){JSONObject stale=old.optJSONObject(i);if(stale!=null)new File(dir,stale.optString("file","")).delete();}
+            for(int i=0;i<old.length();i++){
+                JSONObject previous=old.optJSONObject(i);if(previous==null)continue;
+                long previousSize=previous.optLong("size",0L);
+                if(next.length()<MAX_HISTORY_ITEMS && totalBytes+previousSize<=MAX_HISTORY_BYTES){next.put(previous);totalBytes+=previousSize;}
+                else new File(dir,previous.optString("file","")).delete();
+            }
             getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,next.toString()).apply();
         }catch(Exception ignored){}
     }

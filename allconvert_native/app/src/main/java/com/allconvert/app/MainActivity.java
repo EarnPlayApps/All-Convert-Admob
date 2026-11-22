@@ -62,7 +62,7 @@ public class MainActivity extends Activity {
     private static final String PREFS_ADS="all_convert_ads";
     private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView privacyOptionsEntry; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView privacyOptionsEntry, privacyPolicyEntry, termsEntry; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
     private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;
@@ -70,8 +70,10 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b){
         super.onCreate(b); setContentView(R.layout.activity_main);
         lastAppOpenShown=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getLong(PREF_LAST_APP_OPEN,0L);
-        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); privacyOptionsEntry=findViewById(R.id.privacyOptionsEntry); rewardButton=null;
+        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); privacyOptionsEntry=findViewById(R.id.privacyOptionsEntry); privacyPolicyEntry=findViewById(R.id.privacyPolicyEntry); termsEntry=findViewById(R.id.termsEntry); rewardButton=null;
         privacyOptionsEntry.setOnClickListener(v->showPrivacyOptions());
+        privacyPolicyEntry.setOnClickListener(v->showLegalPage("privacy_policy.html","Dasar Privasi"));
+        termsEntry.setOnClickListener(v->showLegalPage("terms.html","Terma Penggunaan"));
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
         webView.addJavascriptInterface(new AndroidBridge(),"AndroidBridge");
@@ -119,6 +121,34 @@ public class MainActivity extends Activity {
             if(error!=null)Toast.makeText(this,"Tetapan privasi tidak dapat dibuka. Cuba lagi.",Toast.LENGTH_SHORT).show();
             updatePrivacyOptionsEntry();
         });
+    }
+
+    private void showLegalPage(String assetName,String title){
+        WebView legalView=new WebView(this);
+        legalView.setBackgroundColor(Color.WHITE);
+        WebSettings settings=legalView.getSettings();
+        settings.setJavaScriptEnabled(false);
+        settings.setDomStorageEnabled(false);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(false);
+        legalView.setWebViewClient(new WebViewClient(){
+            @Override public boolean shouldOverrideUrlLoading(WebView view,String url){
+                if(url!=null && (url.startsWith("https://")||url.startsWith("http://"))){
+                    try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(Exception ignored){}
+                    return true;
+                }
+                return false;
+            }
+        });
+        legalView.loadUrl("file:///android_asset/"+assetName);
+        AlertDialog dialog=new AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(legalView)
+            .setPositiveButton("Tutup",(d,w)->legalView.destroy())
+            .create();
+        dialog.setOnDismissListener(d->legalView.destroy());
+        dialog.show();
+        if(dialog.getWindow()!=null)dialog.getWindow().setLayout(-1,dp(560));
     }
 
     private class AndroidBridge{

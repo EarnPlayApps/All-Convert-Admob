@@ -233,7 +233,7 @@ public class MainActivity extends Activity {
             conn=(HttpURLConnection)new URL(SUPABASE_URL+path).openConnection();
             conn.setRequestMethod(method);conn.setConnectTimeout(20000);conn.setReadTimeout(30000);
             conn.setRequestProperty("apikey",SUPABASE_PUBLISHABLE_KEY);
-            String token=(cloudAccessToken==null||cloudAccessToken.isEmpty())?SUPABASE_PUBLISHABLE_KEY:cloudAccessToken;
+            String token=(path.startsWith("/auth/v1/")||cloudAccessToken==null||cloudAccessToken.isEmpty())?SUPABASE_PUBLISHABLE_KEY:cloudAccessToken;
             conn.setRequestProperty("Authorization","Bearer "+token);
             conn.setRequestProperty("Accept","application/json");
             if(contentType!=null)conn.setRequestProperty("Content-Type",contentType);
@@ -297,6 +297,7 @@ public class MainActivity extends Activity {
                     if(!local.exists())continue;
                     byte[] bytes=readFileBytes(local);String name=item.optString("name","converted_file");
                     String objectPath=cloudUserId+"/"+UUID.randomUUID().toString()+"_"+safe(name);
+                    if(bytes.length>104857600L||!pruneCloudHistory(bytes.length))continue;
                     cloudRequest("POST","/storage/v1/object/allconvert-history/"+encodeObjectPath(objectPath),bytes,item.optString("mime","application/octet-stream"));
                     JSONObject row=new JSONObject();row.put("user_id",cloudUserId);row.put("file_name",name);row.put("mime_type",item.optString("mime","application/octet-stream"));row.put("object_path",objectPath);row.put("file_size",bytes.length);
                     cloudText("POST","/rest/v1/allconvert_history",row.toString());
@@ -305,6 +306,20 @@ public class MainActivity extends Activity {
             }
             if(changed)getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,records.toString()).apply();
         }).start();
+    }
+    private boolean pruneCloudHistory(long incomingBytes)throws Exception{
+        if(incomingBytes<=0||incomingBytes>104857600L)return false;
+        JSONArray existing=new JSONArray(cloudText("GET","/rest/v1/allconvert_history?select=id,object_path,file_size&order=created_at.asc&limit=50",null));
+        long total=incomingBytes;for(int i=0;i<existing.length();i++)total+=existing.optJSONObject(i).optLong("file_size",0L);
+        int index=0;
+        while((existing.length()-index>=50||total>MAX_HISTORY_BYTES)&&index<existing.length()){
+            JSONObject oldest=existing.optJSONObject(index++);if(oldest==null)continue;
+            String objectPath=oldest.optString("object_path",""),id=oldest.optString("id","");
+            cloudRequest("DELETE","/storage/v1/object/allconvert-history/"+encodeObjectPath(objectPath),null,null);
+            cloudText("DELETE","/rest/v1/allconvert_history?id=eq."+encodePath(id),null);
+            total-=oldest.optLong("file_size",0L);
+        }
+        return total<=MAX_HISTORY_BYTES&&existing.length()-index<50;
     }
     private void loadCloudHistory(){
         Toast.makeText(this,"Memuatkan History cloud…",Toast.LENGTH_SHORT).show();
@@ -356,7 +371,7 @@ public class MainActivity extends Activity {
         String[] actions={"Maklumat fail","Download semula","Share","Padam daripada History"};
         new AlertDialog.Builder(this).setTitle(item.optString("name","Fail")).setItems(actions,(dialog,choice)->{
             File file=new File(new File(getFilesDir(),"history"),item.optString("file",""));
-            if(choice==3){file.delete();JSONArray kept=new JSONArray();for(int i=0;i<records.length();i++)if(i!=index)kept.put(records.optJSONObject(i));getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,kept.toString()).apply();showHistoryDialog();return;}
+            if(choice==3){file.delete();JSONArray kept=new JSONArray();for(int i=0;i<records.length();i++)if(i!=index)kept.put(records.optJSONObject(i));getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,kept.toString()).apply();showLocalHistoryDialog();return;}
             try{
                 byte[] bytes=readFileBytes(file);String name=item.optString("name","converted_file"),type=item.optString("mime","application/octet-stream");
                 if(choice==0)new AlertDialog.Builder(this).setTitle("Maklumat fail").setMessage(name+"\n"+type+"\n"+android.text.format.Formatter.formatShortFileSize(this,bytes.length)).setPositiveButton("Tutup",null).show();

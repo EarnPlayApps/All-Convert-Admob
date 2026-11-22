@@ -3,6 +3,14 @@ package com.allconvert.app;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentValues;
+import android.content.SharedPreferences;
+import android.text.InputType;
+import android.widget.EditText;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKey;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -87,6 +95,7 @@ public class MainActivity extends Activity {
         webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); settingsEntry=findViewById(R.id.settingsEntry); historyEntry=findViewById(R.id.historyEntry); rewardButton=null;
         settingsEntry.setOnClickListener(v->showSettingsDialog());
         historyEntry.setOnClickListener(v->showHistoryDialog());
+        initializeCloudSession();
         initializeBilling();
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
@@ -107,6 +116,11 @@ public class MainActivity extends Activity {
     private static final String HISTORY_KEY="records";
     private static final int MAX_HISTORY_ITEMS=50;
     private static final long MAX_HISTORY_BYTES=200L*1024L*1024L;
+    private static final String SUPABASE_URL="https://hckvehpkzwyerkwpdvlz.supabase.co";
+    private static final String SUPABASE_PUBLISHABLE_KEY="sb_publishable_W1nZcXZSwu3oeKA35iQeJA_AU579wju";
+    private static final String CLOUD_PREFS="allconvert_secure_cloud_session";
+    private volatile String cloudAccessToken="", cloudRefreshToken="", cloudUserId="";
+    private SharedPreferences cloudPrefs;
 
     private void initializeBilling(){
         billingClient=BillingClient.newBuilder(this).setListener(this::onPurchasesUpdated).enablePendingPurchases().build();
@@ -184,7 +198,7 @@ public class MainActivity extends Activity {
             try(FileOutputStream out=new FileOutputStream(new File(dir,stored))){out.write(data);}
             JSONArray old=readHistory(),next=new JSONArray();
             long totalBytes=data.length;
-            JSONObject item=new JSONObject();item.put("name",name);item.put("mime",type);item.put("file",stored);item.put("time",System.currentTimeMillis());item.put("size",data.length);next.put(item);
+            JSONObject item=new JSONObject();item.put("name",name);item.put("mime",type);item.put("file",stored);item.put("time",System.currentTimeMillis());item.put("size",data.length);item.put("cloud_synced",false);next.put(item);
             for(int i=0;i<old.length();i++){
                 JSONObject previous=old.optJSONObject(i);if(previous==null)continue;
                 long previousSize=previous.optLong("size",0L);
@@ -192,15 +206,149 @@ public class MainActivity extends Activity {
                 else new File(dir,previous.optString("file","")).delete();
             }
             getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,next.toString()).apply();
+            if(isPro&&cloudAccessToken!=null&&!cloudAccessToken.isEmpty())syncLocalHistoryToCloud();
         }catch(Exception ignored){}
     }
+
+    private void initializeCloudSession(){
+        try{
+            MasterKey masterKey=new MasterKey.Builder(this).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build();
+            cloudPrefs=EncryptedSharedPreferences.create(this,CLOUD_PREFS,masterKey,EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
+            cloudAccessToken=cloudPrefs.getString("access_token","");
+            cloudRefreshToken=cloudPrefs.getString("refresh_token","");
+            cloudUserId=cloudPrefs.getString("user_id","");
+        }catch(Exception e){cloudPrefs=getSharedPreferences(CLOUD_PREFS,MODE_PRIVATE);}
+    }
+    private void storeCloudSession(JSONObject session)throws Exception{
+        JSONObject user=session.optJSONObject("user");
+        String access=session.optString("access_token",""),refresh=session.optString("refresh_token","");
+        String uid=user==null?"":user.optString("id","");
+        if(access.isEmpty()||uid.isEmpty())throw new Exception("Sesi akaun belum disahkan. Semak e-mel pengesahan jika diminta.");
+        cloudAccessToken=access;cloudRefreshToken=refresh;cloudUserId=uid;
+        if(cloudPrefs!=null)cloudPrefs.edit().putString("access_token",access).putString("refresh_token",refresh).putString("user_id",uid).apply();
+    }
+    private byte[] cloudRequest(String method,String path,byte[] body,String contentType,boolean retry)throws Exception{
+        HttpURLConnection conn=null;
+        try{
+            conn=(HttpURLConnection)new URL(SUPABASE_URL+path).openConnection();
+            conn.setRequestMethod(method);conn.setConnectTimeout(20000);conn.setReadTimeout(30000);
+            conn.setRequestProperty("apikey",SUPABASE_PUBLISHABLE_KEY);
+            String token=(cloudAccessToken==null||cloudAccessToken.isEmpty())?SUPABASE_PUBLISHABLE_KEY:cloudAccessToken;
+            conn.setRequestProperty("Authorization","Bearer "+token);
+            conn.setRequestProperty("Accept","application/json");
+            if(contentType!=null)conn.setRequestProperty("Content-Type",contentType);
+            if("POST".equals(method)||"PUT".equals(method)||"PATCH".equals(method)){conn.setDoOutput(true);if(body!=null)try(OutputStream out=conn.getOutputStream()){out.write(body);}}
+            int code=conn.getResponseCode();
+            InputStream stream=code>=200&&code<300?conn.getInputStream():conn.getErrorStream();
+            ByteArrayOutputStream out=new ByteArrayOutputStream();
+            if(stream!=null)try(InputStream in=stream){byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);}
+            byte[] result=out.toByteArray();
+            if(code==401&&retry&&!cloudRefreshToken.isEmpty()&&!path.startsWith("/auth/v1/token")){
+                refreshCloudSession();return cloudRequest(method,path,body,contentType,false);
+            }
+            if(code<200||code>=300)throw new Exception("Supabase "+code+": "+new String(result,StandardCharsets.UTF_8));
+            return result;
+        }finally{if(conn!=null)conn.disconnect();}
+    }
+    private byte[] cloudRequest(String method,String path,byte[] body,String contentType)throws Exception{return cloudRequest(method,path,body,contentType,true);}
+    private String cloudText(String method,String path,String body)throws Exception{
+        byte[] result=cloudRequest(method,path,body==null?null:body.getBytes(StandardCharsets.UTF_8),"application/json");
+        return new String(result,StandardCharsets.UTF_8);
+    }
+    private void refreshCloudSession()throws Exception{
+        if(cloudRefreshToken.isEmpty())throw new Exception("Sesi tamat. Log masuk semula.");
+        JSONObject payload=new JSONObject();payload.put("refresh_token",cloudRefreshToken);
+        byte[] result=cloudRequest("POST","/auth/v1/token?grant_type=refresh_token",payload.toString().getBytes(StandardCharsets.UTF_8),"application/json",false);
+        storeCloudSession(new JSONObject(new String(result,StandardCharsets.UTF_8)));
+    }
+    private void showCloudAccountDialog(){
+        LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(dp(20),dp(8),dp(20),dp(4));
+        EditText email=new EditText(this);email.setSingleLine(true);email.setHint("E-mel");email.setInputType(33);panel.addView(email);
+        EditText password=new EditText(this);password.setSingleLine(true);password.setHint("Kata laluan");password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);panel.addView(password);
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Akaun All Convert Cloud").setMessage("Log masuk atau daftar akaun untuk menyimpan History Pro dalam cloud dan memulihkannya pada telefon lain.").setView(panel).setPositiveButton("Log Masuk",null).setNeutralButton("Daftar Akaun",null).setNegativeButton("Batal",null).create();
+        dialog.setOnShowListener(v->{
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<6){Toast.makeText(this,"Masukkan e-mel dan kata laluan sekurang-kurangnya 6 aksara.",Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,false);});
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<6){Toast.makeText(this,"Masukkan e-mel dan kata laluan sekurang-kurangnya 6 aksara.",Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,true);});
+        });dialog.show();
+    }
+    private void authenticateCloud(String email,String password,boolean register){
+        Toast.makeText(this,register?"Mendaftar akaun…":"Log masuk…",Toast.LENGTH_SHORT).show();
+        new Thread(()->{
+            try{
+                JSONObject body=new JSONObject();body.put("email",email);body.put("password",password);
+                String endpoint=register?"/auth/v1/signup":"/auth/v1/token?grant_type=password";
+                String response=cloudText("POST",endpoint,body.toString());
+                JSONObject session=new JSONObject(response);
+                if(session.has("access_token")){storeCloudSession(session);if(isPro)syncLocalHistoryToCloud();runOnUiThread(()->{Toast.makeText(this,"Akaun cloud berjaya disambungkan.",Toast.LENGTH_LONG).show();showHistoryDialog();});}
+                else runOnUiThread(()->Toast.makeText(this,"Pendaftaran diterima. Sahkan e-mel dahulu, kemudian log masuk.",Toast.LENGTH_LONG).show());
+            }catch(Exception e){runOnUiThread(()->Toast.makeText(this,"Sambungan akaun gagal: "+e.getMessage(),Toast.LENGTH_LONG).show());}
+        }).start();
+    }
+    private String encodePath(String value){try{return java.net.URLEncoder.encode(value,"UTF-8").replace("+","%20");}catch(Exception e){return value;}}
+    private void syncLocalHistoryToCloud(){
+        if(!isPro||cloudAccessToken.isEmpty()||cloudUserId.isEmpty())return;
+        new Thread(()->{
+            JSONArray records=readHistory();boolean changed=false;
+            for(int i=0;i<records.length();i++){
+                JSONObject item=records.optJSONObject(i);if(item==null||item.optBoolean("cloud_synced",false))continue;
+                try{
+                    File local=new File(new File(getFilesDir(),"history"),item.optString("file",""));
+                    if(!local.exists())continue;
+                    byte[] bytes=readFileBytes(local);String name=item.optString("name","converted_file");
+                    String objectPath=cloudUserId+"/"+UUID.randomUUID().toString()+"_"+safe(name);
+                    cloudRequest("POST","/storage/v1/object/allconvert-history/"+encodePath(objectPath),bytes,item.optString("mime","application/octet-stream"));
+                    JSONObject row=new JSONObject();row.put("user_id",cloudUserId);row.put("file_name",name);row.put("mime_type",item.optString("mime","application/octet-stream"));row.put("object_path",objectPath);row.put("file_size",bytes.length);
+                    cloudText("POST","/rest/v1/allconvert_history",row.toString());
+                    item.put("cloud_synced",true);item.put("cloud_path",objectPath);changed=true;
+                }catch(Exception e){android.util.Log.w("AllConvertCloud","History sync failed",e);}
+            }
+            if(changed)getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,records.toString()).apply();
+        }).start();
+    }
+    private void loadCloudHistory(){
+        Toast.makeText(this,"Memuatkan History cloud…",Toast.LENGTH_SHORT).show();
+        new Thread(()->{
+            try{
+                String json=cloudText("GET","/rest/v1/allconvert_history?select=id,file_name,mime_type,object_path,file_size,created_at&order=created_at.desc&limit=50",null);
+                JSONArray records=new JSONArray(json);
+                runOnUiThread(()->showCloudHistoryList(records));
+            }catch(Exception e){runOnUiThread(()->Toast.makeText(this,"History cloud gagal dimuatkan: "+e.getMessage(),Toast.LENGTH_LONG).show());}
+        }).start();
+    }
+    private void showCloudHistoryList(JSONArray records){
+        if(records.length()==0){new AlertDialog.Builder(this).setTitle("History Pro • Cloud").setMessage("Belum ada fail dalam History cloud. Fail baharu akan disimpan selepas penukaran apabila akaun Pro dan sambungan internet tersedia.").setPositiveButton("Tutup",null).setNeutralButton("History Peranti",(d,w)->showLocalHistoryDialog()).show();return;}
+        String[] labels=new String[records.length()];
+        for(int i=0;i<records.length();i++){JSONObject item=records.optJSONObject(i);labels[i]=(item==null?"Fail":item.optString("file_name","Fail"))+"  •  "+android.text.format.DateFormat.format("dd/MM/yy HH:mm",item==null?System.currentTimeMillis():android.text.format.DateFormat.parse("yyyy-MM-dd'T'HH:mm:ss",item.optString("created_at","1970-01-01T00:00:00"))==null?System.currentTimeMillis():System.currentTimeMillis());}
+        new AlertDialog.Builder(this).setTitle("History Pro • Cloud").setItems(labels,(d,which)->showCloudHistoryItem(records.optJSONObject(which))).setNegativeButton("Tutup",null).setNeutralButton("History Peranti",(d,w)->showLocalHistoryDialog()).show();
+    }
+    private void showCloudHistoryItem(JSONObject item){
+        if(item==null)return;
+        String[] actions={"Download semula","Share","Padam daripada Cloud"};
+        new AlertDialog.Builder(this).setTitle(item.optString("file_name","Fail")).setItems(actions,(d,which)->{
+            String id=item.optString("id",""),path=item.optString("object_path",""),name=item.optString("file_name","converted_file"),type=item.optString("mime_type","application/octet-stream");
+            new Thread(()->{
+                try{
+                    if(which==2){cloudRequest("DELETE","/storage/v1/object/allconvert-history/"+encodePath(path),null,null);cloudText("DELETE","/rest/v1/allconvert_history?id=eq."+encodePath(id),null);runOnUiThread(()->{Toast.makeText(this,"Rekod cloud dipadam.",Toast.LENGTH_SHORT).show();loadCloudHistory();});}
+                    else{
+                        byte[] bytes=cloudRequest("GET","/storage/v1/object/authenticated/allconvert-history/"+encodePath(path),null,null);
+                        runOnUiThread(()->{if(which==0)saveDownload(name,type,bytes);else shareOrOpen(name,type,bytes);});
+                    }
+                }catch(Exception e){runOnUiThread(()->Toast.makeText(this,"Operasi History gagal: "+e.getMessage(),Toast.LENGTH_LONG).show());}
+            }).start();
+        }).setNegativeButton("Kembali",null).show();
+    }
+    private void showLocalHistoryDialog(){
+        JSONArray records=readHistory();
+        if(records.length()==0){new AlertDialog.Builder(this).setTitle("History Peranti").setMessage("Tiada rekod setempat.").setPositiveButton("Tutup",null).show();return;}
+        String[] labels=new String[records.length()];
+        for(int i=0;i<records.length();i++){JSONObject item=records.optJSONObject(i);labels[i]=(item==null?"Fail":item.optString("name","Fail"));}
+        new AlertDialog.Builder(this).setTitle("History Peranti").setItems(labels,(d,w)->showHistoryItem(w)).setNegativeButton("Tutup",null).show();
+    }
+
     private void showHistoryDialog(){
         if(!isPro){showProPlansDialog();return;}
-        JSONArray records=readHistory();
-        if(records.length()==0){new AlertDialog.Builder(this).setTitle("History Penukaran").setMessage("Belum ada fail dalam History. Fail yang berjaya disimpan atau dikongsi akan muncul di sini.").setPositiveButton("Tutup",null).show();return;}
-        String[] labels=new String[records.length()];
-        for(int i=0;i<records.length();i++){JSONObject item=records.optJSONObject(i);labels[i]=(item==null?"Fail":item.optString("name","Fail"))+"  •  "+android.text.format.DateFormat.format("dd/MM/yy HH:mm",item==null?System.currentTimeMillis():item.optLong("time"));}
-        new AlertDialog.Builder(this).setTitle("History Penukaran").setItems(labels,(d,which)->showHistoryItem(which)).setNegativeButton("Tutup",null).show();
+        if(cloudAccessToken==null||cloudAccessToken.isEmpty()){showCloudAccountDialog();return;}
+        loadCloudHistory();
     }
     private void showHistoryItem(int index){
         JSONArray records=readHistory();JSONObject item=records.optJSONObject(index);if(item==null)return;

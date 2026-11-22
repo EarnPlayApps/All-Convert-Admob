@@ -6,5 +6,5 @@
 <FrameLayout android:id="@+id/bannerContainer" android:layout_width="match_parent" android:layout_height="0dp" android:visibility="gone" android:gravity="center" android:background="#FFFFFF"/>
 <WebView android:id="@+id/webView" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
 <FrameLayout android:id="@+id/nativeAdContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:background="#FFFFFF" android:padding="0dp"/>
-<TextView android:id="@+id/appInfoEntry" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:paddingTop="11dp" android:paddingBottom="11dp" android:paddingStart="16dp" android:paddingEnd="16dp" android:text="Maklumat Aplikasi" android:textColor="#385A9B" android:textSize="13sp" android:textStyle="bold" android:clickable="true" android:focusable="true" android:background="#F6F8FC"/>
+<TextView android:id="@+id/settingsEntry" android:layout_width="match_parent" android:layout_height="44dp" android:gravity="end|center_vertical" android:paddingStart="16dp" android:paddingEnd="18dp" android:text="Tetapan  ›" android:textColor="#385A9B" android:textSize="13sp" android:textStyle="bold" android:clickable="true" android:focusable="true" android:background="#FFFFFF"/>
 </LinearLayout>

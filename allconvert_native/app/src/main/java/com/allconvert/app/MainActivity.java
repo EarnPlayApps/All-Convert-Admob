@@ -261,6 +261,11 @@ public class MainActivity extends Activity {
         byte[] result=cloudRequest("POST","/auth/v1/token?grant_type=refresh_token",payload.toString().getBytes(StandardCharsets.UTF_8),"application/json",false);
         storeCloudSession(new JSONObject(new String(result,StandardCharsets.UTF_8)));
     }
+    private void logoutCloud(){
+        cloudAccessToken="";cloudRefreshToken="";cloudUserId="";
+        if(cloudPrefs!=null)cloudPrefs.edit().clear().apply();
+        Toast.makeText(this,"Akaun Cloud telah dilog keluar. Fail setempat kekal pada telefon.",Toast.LENGTH_LONG).show();
+    }
     private void showCloudAccountDialog(){
         LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(dp(20),dp(8),dp(20),dp(4));
         EditText email=new EditText(this);email.setSingleLine(true);email.setHint("E-mel");email.setInputType(33);panel.addView(email);
@@ -428,6 +433,7 @@ public class MainActivity extends Activity {
         AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Tetapan").setView(panel).setNegativeButton("Tutup",null).create();
         addInfoRow(panel,"Langganan Pro","Buka ciri premium dan History",()->{dialog.dismiss();showProPlansDialog();});
         addInfoRow(panel,"Pulihkan Pembelian","Semak semula langganan atau pembelian terdahulu",()->{dialog.dismiss();queryProPurchases();Toast.makeText(this,"Sedang menyemak pembelian Google Play…",Toast.LENGTH_SHORT).show();});
+        if(isPro||!cloudAccessToken.isEmpty())addInfoRow(panel,"Akaun Cloud",cloudAccessToken.isEmpty()?"Sambung akaun untuk History cloud":"Akaun cloud disambungkan",()->{dialog.dismiss();if(cloudAccessToken.isEmpty())showCloudAccountDialog();else new AlertDialog.Builder(this).setTitle("Akaun Cloud").setMessage("Akaun All Convert Cloud sedang disambungkan.").setPositiveButton("Log keluar",(d,w)->logoutCloud()).setNegativeButton("Kembali",null).show();});
         addInfoRow(panel,"Dasar Privasi","Cara maklumat dan data dikendalikan",()->{dialog.dismiss();showLegalPage("privacy_policy.html","Dasar Privasi");});
         addInfoRow(panel,"Terma Penggunaan","Syarat dan peraturan penggunaan aplikasi",()->{dialog.dismiss();showLegalPage("terms.html","Terma Penggunaan");});
         if(consentInformation!=null && consentInformation.getPrivacyOptionsRequirementStatus()==ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED){

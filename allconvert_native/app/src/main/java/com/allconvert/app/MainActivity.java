@@ -62,7 +62,7 @@ public class MainActivity extends Activity {
     private static final String PREFS_ADS="all_convert_ads";
     private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView appInfoEntry; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView settingsEntry; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
     private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;
@@ -70,8 +70,8 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b){
         super.onCreate(b); setContentView(R.layout.activity_main);
         lastAppOpenShown=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getLong(PREF_LAST_APP_OPEN,0L);
-        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); appInfoEntry=findViewById(R.id.appInfoEntry); rewardButton=null;
-        appInfoEntry.setOnClickListener(v->showAppInfoDialog());
+        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); settingsEntry=findViewById(R.id.settingsEntry); rewardButton=null;
+        settingsEntry.setOnClickListener(v->showSettingsDialog());
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
         webView.addJavascriptInterface(new AndroidBridge(),"AndroidBridge");
@@ -109,25 +109,25 @@ public class MainActivity extends Activity {
 
     private void updatePrivacyOptionsEntry(){ /* The privacy action is displayed inside the app information panel when required. */ }
 
-    private void showAppInfoDialog(){
+    private void showSettingsDialog(){
         LinearLayout panel=new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(18),dp(14),dp(18),dp(8));
         panel.setBackgroundColor(Color.WHITE);
         TextView heading=new TextView(this);
-        heading.setText("All Convert");
+        heading.setText("Tetapan All Convert");
         heading.setTextSize(21);
         heading.setTypeface(null,android.graphics.Typeface.BOLD);
         heading.setTextColor(Color.rgb(25,38,62));
         heading.setPadding(dp(4),dp(4),dp(4),dp(2));
         panel.addView(heading,new LinearLayout.LayoutParams(-1,-2));
         TextView version=new TextView(this);
-        version.setText("Maklumat aplikasi, dokumen undang-undang dan pilihan privasi");
+        version.setText("Maklumat & undang-undang serta kawalan privasi iklan");
         version.setTextSize(12);
         version.setTextColor(Color.rgb(105,117,138));
         version.setPadding(dp(4),0,dp(4),dp(12));
         panel.addView(version,new LinearLayout.LayoutParams(-1,-2));
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Tetapan / Maklumat Aplikasi").setView(panel).setNegativeButton("Tutup",null).create();
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Tetapan").setView(panel).setNegativeButton("Tutup",null).create();
         addInfoRow(panel,"Dasar Privasi","Cara maklumat dan data dikendalikan",()->{dialog.dismiss();showLegalPage("privacy_policy.html","Dasar Privasi");});
         addInfoRow(panel,"Terma Penggunaan","Syarat dan peraturan penggunaan aplikasi",()->{dialog.dismiss();showLegalPage("terms.html","Terma Penggunaan");});
         if(consentInformation!=null && consentInformation.getPrivacyOptionsRequirementStatus()==ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED){

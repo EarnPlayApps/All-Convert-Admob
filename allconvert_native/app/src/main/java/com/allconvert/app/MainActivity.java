@@ -55,6 +55,9 @@ public class MainActivity extends Activity {
     private static final String REWARDED_ID="ca-app-pub-9940728659432865/6537570257";
     private static final String NATIVE_ID="ca-app-pub-9940728659432865/5224488586";
     private static final String APP_OPEN_ID="ca-app-pub-9940728659432865/1006961841";
+    private static final long APP_OPEN_COOLDOWN_MS=300000L;
+    private static final String PREFS_ADS="all_convert_ads";
+    private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
 
     private WebView webView; private AdView adView; private NativeAd nativeAd; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
@@ -63,6 +66,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle b){
         super.onCreate(b); setContentView(R.layout.activity_main);
+        lastAppOpenShown=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getLong(PREF_LAST_APP_OPEN,0L);
         webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); rewardButton=null;
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
@@ -266,14 +270,14 @@ public class MainActivity extends Activity {
         nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }
     private void showAppOpenIfReady(){
-        if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<180000L)return;
+        if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<APP_OPEN_COOLDOWN_MS)return;
         com.google.android.gms.ads.appopen.AppOpenAd.load(this,APP_OPEN_ID,new AdRequest.Builder().build(),new com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback(){
             @Override public void onAdLoaded(com.google.android.gms.ads.appopen.AppOpenAd ad){
-                if(System.currentTimeMillis()-lastAppOpenShown<180000L)return;
+                if(System.currentTimeMillis()-lastAppOpenShown<APP_OPEN_COOLDOWN_MS)return;
                 appOpenShowing=true;
                 if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
                 ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){
-                    @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);}
+                    @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putLong(PREF_LAST_APP_OPEN,lastAppOpenShown).apply();appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);}
                     @Override public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError e){appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);}
                 });
                 ad.show(MainActivity.this);

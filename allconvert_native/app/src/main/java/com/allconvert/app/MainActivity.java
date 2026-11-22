@@ -139,7 +139,7 @@ public class MainActivity extends Activity {
 
     private void addInfoRow(LinearLayout parent,String title,String subtitle,Runnable action){
         TextView row=new TextView(this);
-        row.setText(title+"\\n"+subtitle+"     ›");
+        row.setText(title+"\n"+subtitle+"     ›");
         row.setTextSize(14);
         row.setTextColor(Color.rgb(30,45,70));
         row.setLineSpacing(dp(2),1f);

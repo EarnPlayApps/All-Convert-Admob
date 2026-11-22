@@ -105,4 +105,4 @@ jobs:
           retention-days: 14
 
 # Native file actions repaired on 2026-10-12
-# CI retrigger: 2026-10-13
+# CI retrigger: 2026-11-22 final launcher and ad-layout validation

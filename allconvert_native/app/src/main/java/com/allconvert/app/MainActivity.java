@@ -161,7 +161,7 @@ public class MainActivity extends Activity {
         if(result.getResponseCode()==BillingClient.BillingResponseCode.OK){if(purchases!=null)hasValidProPurchase(result,purchases);queryProPurchases();}
         else if(result.getResponseCode()!=BillingClient.BillingResponseCode.USER_CANCELED)Toast.makeText(this,"Pembelian tidak berjaya. Cuba lagi.",Toast.LENGTH_LONG).show();
     }
-    private void setProState(boolean enabled){runOnUiThread(()->{isPro=enabled;if(historyEntry!=null)historyEntry.setVisibility(enabled?View.VISIBLE:View.GONE);});}
+    private void setProState(boolean enabled){runOnUiThread(()->{isPro=enabled;if(historyEntry!=null)historyEntry.setVisibility(enabled?View.VISIBLE:View.GONE);if(enabled&&!cloudAccessToken.isEmpty())syncLocalHistoryToCloud();});}
     private boolean billingClientReady(){return billingClient!=null&&billingClient.isReady();}
     private void showProPlansDialog(){
         if(!billingClientReady()){Toast.makeText(this,"Sambungan Google Play belum tersedia. Cuba lagi sebentar.",Toast.LENGTH_LONG).show();return;}
@@ -217,7 +217,7 @@ public class MainActivity extends Activity {
             cloudAccessToken=cloudPrefs.getString("access_token","");
             cloudRefreshToken=cloudPrefs.getString("refresh_token","");
             cloudUserId=cloudPrefs.getString("user_id","");
-        }catch(Exception e){cloudPrefs=getSharedPreferences(CLOUD_PREFS,MODE_PRIVATE);}
+        }catch(Exception e){cloudPrefs=getSharedPreferences(CLOUD_PREFS,MODE_PRIVATE);cloudAccessToken=cloudPrefs.getString("access_token","");cloudRefreshToken=cloudPrefs.getString("refresh_token","");cloudUserId=cloudPrefs.getString("user_id","");}
     }
     private void storeCloudSession(JSONObject session)throws Exception{
         JSONObject user=session.optJSONObject("user");
@@ -285,6 +285,7 @@ public class MainActivity extends Activity {
         }).start();
     }
     private String encodePath(String value){try{return java.net.URLEncoder.encode(value,"UTF-8").replace("+","%20");}catch(Exception e){return value;}}
+    private String encodeObjectPath(String value){String[] parts=value.split("/");StringBuilder out=new StringBuilder();for(String part:parts){if(out.length()>0)out.append("/");out.append(encodePath(part));}return out.toString();}
     private void syncLocalHistoryToCloud(){
         if(!isPro||cloudAccessToken.isEmpty()||cloudUserId.isEmpty())return;
         new Thread(()->{
@@ -296,7 +297,7 @@ public class MainActivity extends Activity {
                     if(!local.exists())continue;
                     byte[] bytes=readFileBytes(local);String name=item.optString("name","converted_file");
                     String objectPath=cloudUserId+"/"+UUID.randomUUID().toString()+"_"+safe(name);
-                    cloudRequest("POST","/storage/v1/object/allconvert-history/"+encodePath(objectPath),bytes,item.optString("mime","application/octet-stream"));
+                    cloudRequest("POST","/storage/v1/object/allconvert-history/"+encodeObjectPath(objectPath),bytes,item.optString("mime","application/octet-stream"));
                     JSONObject row=new JSONObject();row.put("user_id",cloudUserId);row.put("file_name",name);row.put("mime_type",item.optString("mime","application/octet-stream"));row.put("object_path",objectPath);row.put("file_size",bytes.length);
                     cloudText("POST","/rest/v1/allconvert_history",row.toString());
                     item.put("cloud_synced",true);item.put("cloud_path",objectPath);changed=true;
@@ -318,7 +319,7 @@ public class MainActivity extends Activity {
     private void showCloudHistoryList(JSONArray records){
         if(records.length()==0){new AlertDialog.Builder(this).setTitle("History Pro • Cloud").setMessage("Belum ada fail dalam History cloud. Fail baharu akan disimpan selepas penukaran apabila akaun Pro dan sambungan internet tersedia.").setPositiveButton("Tutup",null).setNeutralButton("History Peranti",(d,w)->showLocalHistoryDialog()).show();return;}
         String[] labels=new String[records.length()];
-        for(int i=0;i<records.length();i++){JSONObject item=records.optJSONObject(i);labels[i]=(item==null?"Fail":item.optString("file_name","Fail"))+"  •  "+android.text.format.DateFormat.format("dd/MM/yy HH:mm",item==null?System.currentTimeMillis():android.text.format.DateFormat.parse("yyyy-MM-dd'T'HH:mm:ss",item.optString("created_at","1970-01-01T00:00:00"))==null?System.currentTimeMillis():System.currentTimeMillis());}
+        for(int i=0;i<records.length();i++){JSONObject item=records.optJSONObject(i);String stamp=item==null?"":item.optString("created_at","");if(stamp.length()>16)stamp=stamp.substring(0,16).replace('T',' ');labels[i]=(item==null?"Fail":item.optString("file_name","Fail"))+"  •  "+stamp;}
         new AlertDialog.Builder(this).setTitle("History Pro • Cloud").setItems(labels,(d,which)->showCloudHistoryItem(records.optJSONObject(which))).setNegativeButton("Tutup",null).setNeutralButton("History Peranti",(d,w)->showLocalHistoryDialog()).show();
     }
     private void showCloudHistoryItem(JSONObject item){
@@ -328,9 +329,9 @@ public class MainActivity extends Activity {
             String id=item.optString("id",""),path=item.optString("object_path",""),name=item.optString("file_name","converted_file"),type=item.optString("mime_type","application/octet-stream");
             new Thread(()->{
                 try{
-                    if(which==2){cloudRequest("DELETE","/storage/v1/object/allconvert-history/"+encodePath(path),null,null);cloudText("DELETE","/rest/v1/allconvert_history?id=eq."+encodePath(id),null);runOnUiThread(()->{Toast.makeText(this,"Rekod cloud dipadam.",Toast.LENGTH_SHORT).show();loadCloudHistory();});}
+                    if(which==2){cloudRequest("DELETE","/storage/v1/object/allconvert-history/"+encodeObjectPath(path),null,null);cloudText("DELETE","/rest/v1/allconvert_history?id=eq."+encodePath(id),null);runOnUiThread(()->{Toast.makeText(this,"Rekod cloud dipadam.",Toast.LENGTH_SHORT).show();loadCloudHistory();});}
                     else{
-                        byte[] bytes=cloudRequest("GET","/storage/v1/object/authenticated/allconvert-history/"+encodePath(path),null,null);
+                        byte[] bytes=cloudRequest("GET","/storage/v1/object/authenticated/allconvert-history/"+encodeObjectPath(path),null,null);
                         runOnUiThread(()->{if(which==0)saveDownload(name,type,bytes);else shareOrOpen(name,type,bytes);});
                     }
                 }catch(Exception e){runOnUiThread(()->Toast.makeText(this,"Operasi History gagal: "+e.getMessage(),Toast.LENGTH_LONG).show());}

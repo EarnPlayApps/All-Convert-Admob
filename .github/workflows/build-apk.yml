@@ -283,6 +283,8 @@ jobs:
           PY
           node --check app/src/main/assets/i18n.js
           grep -q 'src="i18n.js"' app/src/main/assets/index.html
+          grep -q 'Object.assign(D.pt' app/src/main/assets/i18n.js
+          grep -q 'allconvert_language_preference' app/src/main/assets/i18n.js
           python3 - <<'PY'
           from pathlib import Path
           h=Path("app/src/main/assets/index.html").read_text(encoding="utf-8")

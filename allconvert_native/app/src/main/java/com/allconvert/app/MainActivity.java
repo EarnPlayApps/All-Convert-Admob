@@ -190,13 +190,21 @@ public class MainActivity extends Activity {
     private ProductDetails selectedProProduct;
 
     private String proPrice(ProductDetails product){
-        if(product==null)return "Harga dipaparkan oleh Google Play";
-        if(product.getOneTimePurchaseOfferDetails()!=null)return product.getOneTimePurchaseOfferDetails().getFormattedPrice();
-        if(product.getSubscriptionOfferDetails()!=null&&!product.getSubscriptionOfferDetails().isEmpty()){
-            List<ProductDetails.PricingPhase> phases=product.getSubscriptionOfferDetails().get(0).getPricingPhases().getPricingPhaseList();
-            if(!phases.isEmpty())return phases.get(phases.size()-1).getFormattedPrice();
+        if(product!=null){
+            if(product.getOneTimePurchaseOfferDetails()!=null)return product.getOneTimePurchaseOfferDetails().getFormattedPrice();
+            if(product.getSubscriptionOfferDetails()!=null&&!product.getSubscriptionOfferDetails().isEmpty()){
+                List<ProductDetails.PricingPhase> phases=product.getSubscriptionOfferDetails().get(0).getPricingPhases().getPricingPhaseList();
+                if(!phases.isEmpty())return phases.get(phases.size()-1).getFormattedPrice();
+            }
         }
-        return "Harga dipaparkan oleh Google Play";
+        return "Harga di Google Play";
+    }
+    private String proPrice(String productId,ProductDetails product){
+        if(product!=null)return proPrice(product);
+        if(PRO_SUBS[0].equals(productId))return "RM 14.90";
+        if(PRO_SUBS[1].equals(productId))return "RM 119.90";
+        if(PRO_LIFETIME.equals(productId))return "RM 249.90";
+        return "Harga di Google Play";
     }
     private android.graphics.drawable.GradientDrawable proBg(int color,int stroke){
         android.graphics.drawable.GradientDrawable d=new android.graphics.drawable.GradientDrawable();
@@ -246,6 +254,7 @@ public class MainActivity extends Activity {
         TextView hero=proText("✦  ALL CONVERT PRO  ✦\nLebih banyak fungsi. Lebih mudah.\nAkses premium untuk kerja harian anda.",18,Color.WHITE,true);
         hero.setGravity(Gravity.CENTER);hero.setPadding(dp(18),dp(20),dp(18),dp(20));hero.setBackground(proBg(Color.rgb(54,48,112),Color.rgb(119,104,255)));hero.setElevation(dp(7));
         body.addView(hero,new LinearLayout.LayoutParams(-1,dp(132)));
+        TextView stars=proText("★★★★★   PREMIUM EXPERIENCE",13,Color.rgb(255,204,92),true);stars.setGravity(Gravity.CENTER);stars.setLetterSpacing(0.08f);stars.setPadding(0,dp(8),0,dp(4));body.addView(stars,new LinearLayout.LayoutParams(-1,dp(34)));
         if(screen==0){
             TextView intro=proText("Pilih pelan yang sesuai",15,Color.WHITE,true);intro.setPadding(dp(4),dp(16),0,dp(8));body.addView(intro);
             LinearLayout freeCard=new LinearLayout(this);freeCard.setOrientation(LinearLayout.VERTICAL);freeCard.setPadding(dp(16),dp(14),dp(16),dp(14));freeCard.setBackground(proBg(Color.rgb(18,27,45),Color.rgb(32,44,71)));
@@ -259,9 +268,15 @@ public class MainActivity extends Activity {
                 String name=lifetime?"Seumur Hidup":id.equals(PRO_SUBS[0])?"Bulanan":"Tahunan";
                 String suffix=lifetime?" • sekali bayar":id.equals(PRO_SUBS[0])?" / bulan":" / tahun";
                 LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(14),dp(16),dp(14));card.setBackground(proBg(Color.rgb(12,18,33),Color.rgb(59,76,120)));card.setElevation(dp(4));
-                if(id.equals(PRO_SUBS[1])||lifetime){TextView tag=proText(id.equals(PRO_SUBS[1])?"BEST VALUE • TAHUNAN":"AKSES SEUMUR HIDUP",10,Color.rgb(34,207,238),true);tag.setPadding(0,0,0,dp(5));card.addView(tag);}
-                TextView h=proText("All Convert Pro • "+name,lifetime?17:16,Color.WHITE,true);card.addView(h);
-                TextView price=proText(proPrice(product)+suffix,20,Color.rgb(34,207,238),true);price.setPadding(0,dp(7),0,dp(6));card.addView(price);
+                if(id.equals(PRO_SUBS[1])||lifetime){
+                    TextView tag=proText(id.equals(PRO_SUBS[1])?"★  PROMOSI TERHAD • PILIHAN TERBAIK  ★":"✦  PROMOSI TERHAD • BAYAR SEKALI  ✦",11,id.equals(PRO_SUBS[1])?Color.rgb(255,204,92):Color.rgb(34,207,238),true);
+                    tag.setGravity(Gravity.CENTER);tag.setPadding(dp(8),dp(7),dp(8),dp(7));
+                    tag.setBackground(proBg(id.equals(PRO_SUBS[1])?Color.rgb(63,51,27):Color.rgb(22,48,66),id.equals(PRO_SUBS[1])?Color.rgb(174,129,48):Color.rgb(34,207,238)));
+                    LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-1,-2);tp.bottomMargin=dp(9);card.addView(tag,tp);
+                }
+                TextView h=proText((id.equals(PRO_SUBS[1])?"★  ":"")+(lifetime?"✦  ":"")+"All Convert Pro • "+name,lifetime?17:16,Color.WHITE,true);card.addView(h);
+                TextView price=proText(proPrice(id,product)+suffix,22,Color.rgb(34,207,238),true);price.setPadding(0,dp(9),0,dp(7));card.addView(price);
+                if(id.equals(PRO_SUBS[1])||lifetime){TextView premiumStars=proText("★★★★★",13,Color.rgb(255,204,92),true);premiumStars.setPadding(0,0,0,dp(5));card.addView(premiumStars);}
                 addProFeature(card,"Pengalaman tanpa iklan semasa Pro aktif");
                 addProFeature(card,"History sehingga 50 fail / 200 MB keseluruhan (maksimum 50 MB setiap fail)");
                 addProFeature(card,"Pulihkan pembelian melalui Google Play");

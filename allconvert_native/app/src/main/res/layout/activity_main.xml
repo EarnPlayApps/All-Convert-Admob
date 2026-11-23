@@ -41,6 +41,13 @@
    android:clickable="true"
    android:focusable="true"/>
  </LinearLayout>
+ <FrameLayout
+  android:id="@+id/bannerContainer"
+  android:layout_width="match_parent"
+  android:layout_height="0dp"
+  android:visibility="gone"
+  android:gravity="center"
+  android:background="#FF0B1430"/>
  <WebView
   android:id="@+id/webView"
   android:layout_width="match_parent"
@@ -54,11 +61,5 @@
   android:visibility="gone"
   android:background="#FF0B1430"
   android:padding="0dp"/>
- <FrameLayout
-  android:id="@+id/bannerContainer"
-  android:layout_width="match_parent"
-  android:layout_height="0dp"
-  android:visibility="gone"
-  android:gravity="center"
-  android:background="#FF0B1430"/>
+
 </LinearLayout>

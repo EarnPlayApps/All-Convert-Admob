@@ -135,7 +135,7 @@ jobs:
           convert_anchor = '<section class="hero">'
           if convert_anchor not in h: raise SystemExit("FAIL: conversion workspace anchor missing")
           h = h.replace(convert_anchor, convert_anchor, 1)
-          note_end = '</div>\n<script>\n(function(){'
+          note_end = '</div>\n</div>\n<div class=\"toast\"'
           if note_end not in h: raise SystemExit("FAIL: conversion page closing anchor missing")
           nav = '''
           </section>
@@ -146,7 +146,7 @@ jobs:
             <button type="button" id="navSettings">⚙<br>Tetapan</button>
           </nav>
           '''
-          h = h.replace(note_end, '</div>\n' + nav + '<script>\n(function(){', 1)
+          h = h.replace(note_end, '</div>\n</section>\n</div>\n' + nav + '<div class=\"toast\"', 1)
           # Add page switching and native navigation hooks.
           js_nav = '''
           function showPage(page){

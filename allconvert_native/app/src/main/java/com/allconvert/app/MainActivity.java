@@ -642,7 +642,7 @@ public class MainActivity extends Activity {
             String name=safe(n); String type=mime(m); byte[] data=dec(b);
             if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}else{saveDownload(name,type,data);}
         }
-        @JavascriptInterface public void saveAs(String n,String m,String b){String name=safe(n);pendingBytes=dec(b);Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,name);startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}
+        @JavascriptInterface public void saveAs(String n,String m,String b){String name=safe(n);byte[] data=dec(b);runOnUiThread(()->{pendingBytes=data;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,name);try{startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}catch(Exception e){pendingBytes=null;Toast.makeText(MainActivity.this,"Tidak dapat membuka lokasi simpan.",Toast.LENGTH_LONG).show();}});}
         @JavascriptInterface public void share(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);shareOrOpen(name,type,data);}
         @JavascriptInterface public void openWith(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);openFile(name,type,data);}
         @JavascriptInterface public void showRewarded(){runOnUiThread(MainActivity.this::showRewardedIfReady);}
@@ -705,10 +705,8 @@ public class MainActivity extends Activity {
             ContentValues v=new ContentValues();v.put(MediaStore.Downloads.DISPLAY_NAME,n);v.put(MediaStore.Downloads.MIME_TYPE,m);v.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/All Convert");
             Uri u=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,v);if(u==null)throw new Exception();
             try(OutputStream o=getContentResolver().openOutputStream(u)){o.write(data);}
-            webView.evaluateJavascript("window.__allConvertNativeDone&&window.__allConvertNativeDone('download')",null);
-            conversionCount++;
-            if(conversionCount%5==0) showInterstitialIfReady();
-        }catch(Exception e){webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('download')",null);}
+            runOnUiThread(()->{webView.evaluateJavascript("window.__allConvertNativeDone&&window.__allConvertNativeDone('download')",null);conversionCount++;if(conversionCount%5==0)showInterstitialIfReady();});
+        }catch(Exception e){runOnUiThread(()->webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('download')",null));}
     }
     private void shareOrOpen(String n,String m,byte[] data){
         try{

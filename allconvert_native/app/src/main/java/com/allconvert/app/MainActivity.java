@@ -365,7 +365,7 @@ public class MainActivity extends Activity {
                 String json=cloudText("GET","/rest/v1/allconvert_history?select=id,file_name,mime_type,object_path,file_size,created_at&order=created_at.desc&limit=50",null);
                 JSONArray records=new JSONArray(json);
                 runOnUiThread(()->showCloudHistoryList(records));
-            }catch(Exception e){runOnUiThread(()->new AlertDialog.Builder(this).setTitle("History Cloud tidak tersedia").setMessage("Sambungan cloud gagal. Anda masih boleh buka History yang tersimpan pada telefon.\n\\n"+e.getMessage()).setPositiveButton("History Peranti",(d,w)->showLocalHistoryDialog()).setNegativeButton("Tutup",null).show());}
+            }catch(Exception e){runOnUiThread(()->new AlertDialog.Builder(this).setTitle("History Cloud tidak tersedia").setMessage("Sambungan cloud gagal. Anda masih boleh buka History yang tersimpan pada telefon.\n\n"+e.getMessage()).setPositiveButton("History Peranti",(d,w)->showLocalHistoryDialog()).setNegativeButton("Tutup",null).show());}
         }).start();
     }
     private void showCloudHistoryList(JSONArray records){

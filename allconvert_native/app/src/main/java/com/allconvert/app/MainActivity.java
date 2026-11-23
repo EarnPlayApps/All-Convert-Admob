@@ -748,9 +748,9 @@ public class MainActivity extends Activity {
         preview.loadDataWithBaseURL("https://allconvert.local/",html,"text/html","UTF-8",null);
         root.addView(preview,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL); actions.setGravity(Gravity.CENTER); actions.setPadding(0,dp(8),0,0);
-        Button download=new Button(this); download.setText(tx("Download")); download.setAllCaps(false);
-        Button save=new Button(this); save.setText(tx("Save As")); save.setAllCaps(false);
-        Button share=new Button(this); share.setText(tx("Share")); share.setAllCaps(false);
+        Button download=proButton("Download",true);
+        Button save=proButton("Save As",false);
+        Button share=proButton("Share",false);
         actions.addView(download,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(save,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(share,new LinearLayout.LayoutParams(0,dp(44),1));
         root.addView(actions,new LinearLayout.LayoutParams(-1,dp(52)));
         final AlertDialog dialog=new AlertDialog.Builder(this).setTitle(tx("HTML Preview")).setView(root).setNegativeButton(tx("Tutup"),null).create();

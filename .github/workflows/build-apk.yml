@@ -114,24 +114,26 @@ jobs:
           promo_card = '<section id="promoAnnouncement" class="ac-promo" style="display:none"><div class="ac-promo-top"><div class="ac-promo-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.2 6.1L20 10l-5.8 2.1L12 18l-2.2-5.9L4 10l5.8-1.9L12 2Zm7 12 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14Z" fill="currentColor"/></svg></div><div class="ac-promo-heading"><span id="promoEyebrow" class="ac-promo-kicker">PENGUMUMAN RASMI</span><span class="ac-promo-brand">ALL CONVERT PRO</span></div><span class="ac-promo-live">TAWARAN</span></div><div class="ac-promo-content"><h2 id="promoTitle">Tawaran khas All Convert Pro</h2><p id="promoMessage"></p><div class="ac-promo-footer"><span id="promoDates" class="ac-promo-dates"></span><button type="button" id="promoPlansBtn" class="ac-promo-cta">Lihat pelan Pro <span aria-hidden="true">›</span></button></div></div></section>\n'
 
           promo_css = r"""<style>
-          .ac-promo{box-sizing:border-box;width:calc(100% - 28px);max-width:760px;margin:16px auto 20px;border:1px solid #293654;border-radius:25px;overflow:hidden;background:linear-gradient(145deg,#10183c 0%,#0c1221 72%,#063c52 140%);box-shadow:0 20px 55px #0006;color:#fff;font-family:inherit}
-          .ac-promo-top{display:flex;align-items:center;gap:12px;padding:15px 17px;background:linear-gradient(110deg,#171f3b 0%,#10183c 58%,#121b2d 100%);border-bottom:1px solid #293654}
-          .ac-promo-mark{width:42px;height:42px;flex:0 0 42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#7768ff,#22cfee);color:#fff;box-shadow:0 6px 18px #556dff55}
-          .ac-promo-mark svg{width:25px;height:25px;filter:drop-shadow(0 0 7px #22cfee88)}
-          .ac-promo-content{position:relative}
-          .ac-promo-content:after{content:'✦  ✧  ✦';position:absolute;right:16px;top:10px;color:#7768ff88;font-size:19px;letter-spacing:8px;pointer-events:none}
-          .ac-promo-heading{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
-          .ac-promo-kicker{font-size:10px;font-weight:900;letter-spacing:.13em;color:#22cfee}
-          .ac-promo-brand{font-size:12px;font-weight:850;letter-spacing:.07em;color:#fff}
-          .ac-promo-live{padding:6px 9px;border:1px solid #3b4c78;border-radius:999px;background:#171f3b;color:#aeb9d1;font-size:9px;font-weight:900;letter-spacing:.08em}
-          .ac-promo-content{padding:17px 18px 16px}
-          .ac-promo-content h2{margin:0 0 8px;color:#fff;font-size:clamp(18px,4vw,22px);line-height:1.25;font-weight:900;letter-spacing:-.02em}
-          .ac-promo-content p{margin:0;color:#aeb9d1;font-size:13px;line-height:1.65}
-          .ac-promo-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px}
-          .ac-promo-dates{display:inline-flex;align-items:center;min-height:30px;padding:5px 10px;border:1px solid #2b3956;border-radius:10px;background:#121b2d;color:#aeb9d1;font-size:10px;font-weight:750}
-          .ac-promo-cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border:0;border-radius:12px;background:linear-gradient(135deg,#7768ff,#22cfee);box-shadow:0 6px 16px #556dff44;color:#fff;font-size:12px;font-weight:850;cursor:pointer}
-          .ac-promo-cta:active{transform:translateY(1px)}
-          @media(max-width:380px){.ac-promo{width:calc(100% - 20px);border-radius:18px}.ac-promo-content{padding:14px}.ac-promo-footer{align-items:stretch;flex-direction:column}.ac-promo-cta{width:100%}}
+          .ac-promo{box-sizing:border-box;position:relative;isolation:isolate;width:calc(100% - 28px);max-width:760px;margin:18px auto 22px;padding:1px;border-radius:27px;overflow:hidden;background:linear-gradient(125deg,#22cfee 0%,#7768ff 42%,#22cfee 75%,#3b4c78 100%);box-shadow:0 18px 48px #0008,0 0 28px #7768ff24;color:#fff;font-family:inherit}
+          .ac-promo:before{content:'';position:absolute;z-index:-1;inset:0;background:radial-gradient(ellipse at 12% 0%,#7768ff66,transparent 43%),radial-gradient(ellipse at 100% 100%,#22cfee44,transparent 45%)}
+          .ac-promo-top{position:relative;display:flex;align-items:center;gap:12px;padding:16px 18px;background:linear-gradient(112deg,#201c55 0%,#111b3d 58%,#0b3042 100%);border-radius:26px 26px 0 0}
+          .ac-promo-mark{width:46px;height:46px;flex:0 0 46px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#9387ff 0%,#7768ff 48%,#22cfee 100%);color:#fff;box-shadow:0 7px 22px #7768ff66,inset 0 1px 0 #ffffff66}
+          .ac-promo-mark svg{width:27px;height:27px;filter:drop-shadow(0 0 8px #22cfee99)}
+          .ac-promo-heading{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+          .ac-promo-kicker{font-size:9px;font-weight:950;letter-spacing:.16em;color:#70eaff}
+          .ac-promo-brand{font-size:13px;font-weight:900;letter-spacing:.09em;color:#fff}
+          .ac-promo-live{padding:7px 10px;border:1px solid #7d73ff88;border-radius:999px;background:linear-gradient(120deg,#7768ff35,#22cfee20);color:#dceaff;font-size:9px;font-weight:950;letter-spacing:.09em;box-shadow:inset 0 1px 0 #ffffff18}
+          .ac-promo-content{position:relative;padding:20px 20px 18px;background:linear-gradient(145deg,#111b39 0%,#0c1224 65%,#0b2839 120%)}
+          .ac-promo-content:before{content:'';position:absolute;right:-34px;top:-56px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#7768ff32 0%,#22cfee12 38%,transparent 72%);pointer-events:none}
+          .ac-promo-content:after{content:'✦  ✧  ✦';position:absolute;right:19px;top:14px;color:#a99fff9c;font-size:20px;letter-spacing:9px;text-shadow:0 0 16px #7768ff88;pointer-events:none}
+          .ac-promo-content h2{position:relative;max-width:90%;margin:0 0 10px;color:#fff;font-size:clamp(20px,4.5vw,25px);line-height:1.22;font-weight:950;letter-spacing:-.025em;text-shadow:0 3px 20px #7768ff38}
+          .ac-promo-content p{position:relative;max-width:95%;margin:0;color:#c1cce2;font-size:13px;line-height:1.7}
+          .ac-promo-footer{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid #ffffff16}
+          .ac-promo-dates{display:inline-flex;align-items:center;min-height:32px;padding:6px 11px;border:1px solid #53618b88;border-radius:11px;background:linear-gradient(120deg,#1b2448,#122b3c);color:#d2def3;font-size:10px;font-weight:800;box-shadow:inset 0 1px 0 #ffffff10}
+          .ac-promo-cta{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:0 18px;border:1px solid #ffffff55;border-radius:13px;background:linear-gradient(110deg,#8170ff 0%,#6b63f2 42%,#18bfe2 100%);box-shadow:0 8px 22px #4b62ff55,inset 0 1px 0 #ffffff66;color:#fff;font-size:12px;font-weight:950;letter-spacing:.01em;cursor:pointer}
+          .ac-promo-cta span{font-size:19px;line-height:1}
+          .ac-promo-cta:active{transform:translateY(1px);filter:brightness(.95)}
+          @media(max-width:380px){.ac-promo{width:calc(100% - 20px);border-radius:21px}.ac-promo-top{padding:13px 14px}.ac-promo-content{padding:16px 15px}.ac-promo-content h2{max-width:100%;font-size:19px}.ac-promo-footer{align-items:stretch;flex-direction:column}.ac-promo-cta{width:100%}}
           </style>"""
           if '.ac-promo{' not in h:
               h = h.replace('</head>', promo_css + '\n</head>', 1)

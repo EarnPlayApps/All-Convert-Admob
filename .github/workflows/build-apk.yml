@@ -2,8 +2,14 @@ name: All Convert - Build APK
 
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     branches: [ main ]
+  push:
+    branches: [ main, fix/app-open-cooldown-5min ]
+
+concurrency:
+  group: all-convert-apk-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -28,8 +34,161 @@ jobs:
           gunzip -c /tmp/index.gz > app/src/main/assets/index.html
           sed -i 's/ca-app-pub-9940728659432865~7835018675/ca-app-pub-9940728659432865~2706136459/g; s/ca-app-pub-9940728659432865\/7572128943/ca-app-pub-9940728659432865\/6234492932/g' app/src/main/assets/index.html
           test -s app/src/main/assets/index.html
+          test -s app/src/main/assets/privacy_policy.html
+          test -s app/src/main/assets/terms.html
+          grep -q "Dasar Privasi All Convert" app/src/main/assets/privacy_policy.html
+          grep -q "Terma Penggunaan All Convert" app/src/main/assets/terms.html
+          grep -q "showLegalPage" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "settingsEntry" app/src/main/res/layout/activity_main.xml
+          grep -q "historyEntry" app/src/main/res/layout/activity_main.xml
+          grep -q "allconvert_pro_monthly" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "recordHistory" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "recordConverted" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "showHistoryDialog" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "allconvert-history" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "SUPABASE_PUBLISHABLE_KEY" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "com.android.billingclient:billing:6.2.1" app/build.gradle
           ACTUAL=$(wc -c < app/src/main/assets/index.html)
-          test "$ACTUAL" -eq 31823
+          test "$ACTUAL" -ge 30000
+          sed -i 's|#admobBanner{width:100%;min-height:52px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden;border-radius:12px;background:rgba(255,255,255,.025)}|#admobBanner{display:none!important;min-height:0!important;margin:0!important}|' app/src/main/assets/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/assets/index.html")
+          h = p.read_text(encoding="utf-8")
+          old = '<label class="drop" id="drop" for="fileInput"><div class="drop-icon">📁</div><div class="drop-title">Tap untuk pilih fail</div><div class="drop-sub">atau drag &amp; drop • maksimum 100 MB</div><input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp,.avif,.bmp,.gif,.docx,.txt,.md,.html,.csv,.json,.pdf,.zip,*/*"></label>'
+          new = '<div class="drop" id="drop"><div class="drop-icon">📁</div><div class="drop-title">Pilih fail untuk mula</div><div class="drop-sub">atau drag &amp; drop • maksimum 100 MB</div><button type="button" class="pick-file-btn" id="pickFileBtn">Tap untuk pilih fail</button><input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.webp,.avif,.bmp,.gif,.docx,.txt,.md,.html,.csv,.json,.pdf,.zip,*/*" style="display:none"></div>'
+          if old not in h:
+              raise SystemExit("FAIL: original file picker markup not found")
+          h = h.replace(old, new, 1)
+          css_anchor = '.drop{margin-top:18px;'
+          if css_anchor not in h:
+              raise SystemExit("FAIL: drop CSS anchor not found")
+          h = h.replace(css_anchor, '.drop{position:relative;margin-top:18px;', 1)
+          p.write_text(h, encoding="utf-8")
+          print("File picker isolated to #pickFileBtn")
+          history_anchor = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;'
+          if history_anchor not in h:
+              raise SystemExit("FAIL: successful conversion History anchor not found")
+          history_hook = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;if(window.AndroidBridge?.conversionCompleted)window.AndroidBridge.conversionCompleted();if(window.AndroidBridge?.recordConverted){if(b.size<=52428800){try{const reader=new FileReader();const encoded=await new Promise((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(reader.error);reader.readAsDataURL(b)});window.AndroidBridge.recordConverted(resultName,b.type||"application/octet-stream",encoded);window.__allConvertHistoryLarge=false}catch(historyError){console.warn("History local save failed",historyError)}}else{window.__allConvertHistoryLarge=true}}'
+          h = h.replace(history_anchor, history_hook, 1)
+          toast_anchor = 'showToast("✅ Conversion berjaya!",resultName+" sudah siap.");'
+          if toast_anchor not in h:
+              raise SystemExit("FAIL: conversion success toast anchor not found")
+          h = h.replace(toast_anchor, 'showToast("✅ Conversion berjaya!",resultName+" sudah siap."+(window.__allConvertHistoryLarge?" Fail lebih 50 MB tidak masuk History automatik; sila simpan manual.":""));window.__allConvertHistoryLarge=false;', 1)
+          if 'recordConverted' not in h:
+              raise SystemExit("FAIL: automatic History hook was not inserted")
+          # Connect result actions to Android's native file APIs inside the WebView.
+          # Browser blob downloads and showSaveFilePicker are not reliable in Android WebView.
+          native_bridge = r'''<script>(function(){
+          const browserDownload=window.downloadResultFile,browserSave=window.saveToDevice,browserShare=window.shareResult,browserOpen=window.openResultFile;
+          const pick=document.getElementById('pickFileBtn'),input=document.getElementById('fileInput');if(pick&&input)pick.addEventListener('click',()=>input.click());
+          const resultActionIds=['downloadBtn','saveBtn','shareBtn','openBtn'];
+          window.__allConvertLockResultActions=function(){resultActionIds.forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.setAttribute('aria-disabled','true');b.style.opacity='.48';b.style.cursor='not-allowed'}})};
+          window.__allConvertUnlockResultActions=function(){resultActionIds.forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=false;b.removeAttribute('aria-disabled');b.style.opacity='';b.style.cursor=''}})};
+          function send(method,blob,name){return new Promise((resolve,reject)=>{try{if(!window.AndroidBridge||typeof window.AndroidBridge[method]!=="function")return reject(new Error("Native file bridge unavailable"));const reader=new FileReader();reader.onerror=()=>reject(reader.error||new Error("Fail tidak dapat dibaca"));reader.onload=()=>{try{const encoded=String(reader.result).split(",")[1]||"";if(!encoded)throw new Error("Data fail kosong");window.AndroidBridge[method](name,blob.type||"application/octet-stream",encoded);resolve()}catch(e){reject(e)}};reader.readAsDataURL(blob)}catch(e){reject(e)}})}
+          window.downloadResultFile=function(){if(!resultBlob)return window.showToast("Tiada fail","Buat conversion dahulu.");if(!window.AndroidBridge)return browserDownload();send("download",resultBlob,resultName).then(()=>{window.setStatus("Fail dihantar ke folder Download. ✓","ok");window.showToast("Download","Fail disimpan dalam Download/All Convert.")}).catch(e=>{console.error(e);window.showToast("Download gagal",e.message||"Cuba lagi.")})};
+          window.saveToDevice=async function(){if(!resultBlob)return window.showToast("Tiada fail","Buat conversion dahulu.");if(!window.AndroidBridge)return browserSave();try{await send("saveAs",resultBlob,resultName);window.setStatus("Pilih lokasi untuk simpan fail.","ok")}catch(e){console.error(e);window.showToast("Simpanan gagal",e.message||"Cuba Download.")}};
+          window.shareResult=function(){if(!resultBlob)return window.showToast("Tiada fail","Buat conversion dahulu.");if(!window.AndroidBridge)return browserShare();send("share",resultBlob,resultName).then(()=>{window.setStatus("Fail sedia dikongsi. ✓","ok")}).catch(e=>{console.error(e);window.showToast("Share gagal",e.message||"Cuba Download.")})};
+          window.openResultFile=function(){if(!resultBlob)return window.showToast("Tiada fail","Buat conversion dahulu.");if(!window.AndroidBridge)return browserOpen();send("openWith",resultBlob,resultName).then(()=>{window.setStatus("Membuka fail dengan aplikasi peranti…","ok")}).catch(e=>{console.error(e);window.showToast("Open With gagal",e.message||"Cuba Download.")})};
+          })();</script>'''
+          if 'window.__allConvertNativeBridgeInstalled' not in h:
+              close = h.rfind('</body>')
+              if close < 0:
+                  raise SystemExit("FAIL: HTML body closing tag not found for native file bridge")
+              native_bridge = native_bridge.replace('(function(){','(function(){window.__allConvertNativeBridgeInstalled=true;',1)
+              h = h[:close] + native_bridge + '\n' + h[close:]
+          # Repair promotion script placement: it was accidentally inserted inside
+          # the DOCX-to-HTML template literal, truncating the main application script.
+          promo_script = """<script>(function(){const endpoint='https://hckvehpkzwyerkwpdvlz.supabase.co/functions/v1/allconvert-promotions';const publicKey='sb_publishable_W1nZcXZSwu3oeKA35iQeJA_AU579wju';const box=document.getElementById('promoAnnouncement');if(!box)return;const $=id=>document.getElementById(id);const promoBtn=$('promoPlansBtn');if(promoBtn)promoBtn.addEventListener('click',()=>{if(window.AndroidBridge&&window.AndroidBridge.openPro)window.AndroidBridge.openPro();else document.querySelector('[data-plan],#proPlans,.pro-plans')?.scrollIntoView({behavior:'smooth',block:'center'})});let currentLocale=(document.documentElement.lang||navigator.language||'en').toLowerCase().split('-')[0];const fmt=value=>{try{return new Intl.DateTimeFormat(currentLocale,{day:'numeric',month:'short',year:'numeric'}).format(new Date(value))}catch(e){return String(value||'')}};const labels={en:{official:'OFFICIAL ANNOUNCEMENT',offer:'SPECIAL OFFER',live:'PROMOTION LIVE',started:'PROMOTION STARTED',ending:'ENDING SOON',reminder:'ENDING SOON REMINDER',upcoming:'UPCOMING OFFER',ended:'OFFER ENDED',thanks:'Thank you for choosing All Convert',fallback:'All Convert is here for you',explore:'Explore the latest All Convert Pro offers.',soon:'A new offer will begin soon.',valid:'Valid:',starts:'Starts:',plans:'View Pro Plans',announcement:'ALL CONVERT UPDATE'},ms:{official:'PENGUMUMAN RASMI',offer:'TAWARAN',live:'PROMO SEDANG BERLANGSUNG',started:'PROMO BERMULA',ending:'PROMO HAMPIR TAMAT',reminder:'PERINGATAN: PROMO HAMPIR TAMAT',upcoming:'PROMO AKAN DATANG',ended:'PROMO TELAH TAMAT',thanks:'Terima kasih kerana bersama All Convert',fallback:'All Convert sentiasa bersama anda',explore:'Semak tawaran terkini All Convert Pro.',soon:'Tawaran baharu akan bermula tidak lama lagi.',valid:'Sah:',starts:'Mula:',plans:'Lihat pelan Pro',announcement:'PENGUMUMAN ALL CONVERT'},zh:{official:"官方公告",offer:"特别优惠",live:"促销进行中",started:"促销已开始",ending:"即将结束",reminder:"提醒：促销即将结束",upcoming:"即将推出",ended:"优惠已结束",thanks:"感谢您选择 All Convert",fallback:"All Convert 始终为您服务",explore:"查看最新的 All Convert Pro 优惠。",soon:"新优惠即将推出。",valid:"有效期：",starts:"开始：",plans:"查看 Pro 套餐",announcement:"ALL CONVERT 更新"},es:{official:"ANUNCIO OFICIAL",offer:"OFERTA ESPECIAL",live:"PROMOCIÓN ACTIVA",started:"PROMOCIÓN INICIADA",ending:"TERMINA PRONTO",reminder:"RECORDATORIO: TERMINA PRONTO",upcoming:"PRÓXIMA OFERTA",ended:"OFERTA FINALIZADA",thanks:"Gracias por elegir All Convert",fallback:"All Convert está aquí para ayudarte",explore:"Descubre las últimas ofertas de All Convert Pro.",soon:"Una nueva oferta comenzará pronto.",valid:"Válido:",starts:"Comienza:",plans:"Ver planes Pro",announcement:"ACTUALIZACIÓN DE ALL CONVERT"},hi:{official:"आधिकारिक घोषणा",offer:"विशेष ऑफ़र",live:"प्रमोशन जारी",started:"प्रमोशन शुरू",ending:"जल्द समाप्त",reminder:"याद दिलाना: जल्द समाप्त",upcoming:"आगामी ऑफ़र",ended:"ऑफ़र समाप्त",thanks:"All Convert चुनने के लिए धन्यवाद",fallback:"All Convert आपकी मदद के लिए है",explore:"नवीनतम All Convert Pro ऑफ़र देखें।",soon:"नया ऑफ़र जल्द शुरू होगा।",valid:"मान्य:",starts:"शुरू:",plans:"Pro प्लान देखें",announcement:"ALL CONVERT अपडेट"},bn:{official:"সরকারি ঘোষণা",offer:"বিশেষ অফার",live:"প্রচার চলছে",started:"প্রচার শুরু হয়েছে",ending:"শীঘ্রই শেষ",reminder:"মনে করিয়ে দিচ্ছি: শীঘ্রই শেষ",upcoming:"আসন্ন অফার",ended:"অফার শেষ",thanks:"All Convert বেছে নেওয়ার জন্য ধন্যবাদ",fallback:"All Convert আপনার পাশে আছে",explore:"সর্বশেষ All Convert Pro অফার দেখুন।",soon:"নতুন অফার শীঘ্রই শুরু হবে।",valid:"কার্যকর:",starts:"শুরু:",plans:"Pro প্ল্যান দেখুন",announcement:"ALL CONVERT আপডেট"},ja:{official:"公式のお知らせ",offer:"特別オファー",live:"キャンペーン開催中",started:"キャンペーン開始",ending:"まもなく終了",reminder:"お知らせ：まもなく終了",upcoming:"近日公開",ended:"オファー終了",thanks:"All Convertをお選びいただきありがとうございます",fallback:"All Convertがいつでもサポートします",explore:"最新のAll Convert Proオファーをご覧ください。",soon:"新しいオファーがまもなく始まります。",valid:"有効：",starts:"開始：",plans:"Proプランを見る",announcement:"ALL CONVERT 更新情報"},ko:{official:"공식 공지",offer:"특별 혜택",live:"프로모션 진행 중",started:"프로모션 시작",ending:"곧 종료",reminder:"알림: 곧 종료",upcoming:"예정된 혜택",ended:"혜택 종료",thanks:"All Convert를 선택해 주셔서 감사합니다",fallback:"All Convert가 함께합니다",explore:"최신 All Convert Pro 혜택을 확인하세요.",soon:"새 혜택이 곧 시작됩니다.",valid:"유효 기간:",starts:"시작:",plans:"Pro 요금제 보기",announcement:"ALL CONVERT 업데이트"},fr:{official:"ANNONCE OFFICIELLE",offer:"OFFRE SPÉCIALE",live:"PROMOTION EN COURS",started:"PROMOTION COMMENCÉE",ending:"BIENTÔT TERMINÉE",reminder:"RAPPEL : FIN IMMINENTE",upcoming:"OFFRE À VENIR",ended:"OFFRE TERMINÉE",thanks:"Merci d’avoir choisi All Convert",fallback:"All Convert est là pour vous",explore:"Découvrez les dernières offres All Convert Pro.",soon:"Une nouvelle offre commencera bientôt.",valid:"Valable :",starts:"Début :",plans:"Voir les offres Pro",announcement:"ACTUALITÉ ALL CONVERT"},de:{official:"OFFIZIELLE MITTEILUNG",offer:"SONDERANGEBOT",live:"AKTION LÄUFT",started:"AKTION GESTARTET",ending:"ENDET BALD",reminder:"ERINNERUNG: ENDET BALD",upcoming:"KOMMENDES ANGEBOT",ended:"ANGEBOT BEENDET",thanks:"Danke, dass Sie All Convert gewählt haben",fallback:"All Convert ist für Sie da",explore:"Entdecken Sie die neuesten All Convert Pro-Angebote.",soon:"Ein neues Angebot beginnt in Kürze.",valid:"Gültig:",starts:"Beginn:",plans:"Pro-Tarife ansehen",announcement:"ALL CONVERT UPDATE"},pt:{official:"AVISO OFICIAL",offer:"OFERTA ESPECIAL",live:"PROMOÇÃO ATIVA",started:"PROMOÇÃO INICIADA",ending:"TERMINA EM BREVE",reminder:"LEMBRETE: TERMINA EM BREVE",upcoming:"PRÓXIMA OFERTA",ended:"OFERTA ENCERRADA",thanks:"Obrigado por escolher o All Convert",fallback:"O All Convert está aqui para ajudar",explore:"Confira as ofertas mais recentes do All Convert Pro.",soon:"Uma nova oferta começará em breve.",valid:"Válido:",starts:"Começa:",plans:"Ver planos Pro",announcement:"ATUALIZAÇÃO ALL CONVERT"},ar:{official:'إعلان رسمي',offer:'عرض خاص',live:'العرض متاح الآن',started:'بدأ العرض',ending:'ينتهي قريبًا',reminder:'تذكير: ينتهي العرض قريبًا',upcoming:'عرض قادم',ended:'انتهى العرض',thanks:'شكرًا لاختيارك All Convert',fallback:'All Convert معك دائمًا',explore:'اكتشف أحدث عروض All Convert Pro.',soon:'سيبدأ عرض جديد قريبًا.',valid:'صالح:',starts:'يبدأ:',plans:'عرض خطط Pro',announcement:'تحديث All Convert'},
+          id:{official:'PENGUMUMAN RESMI',offer:'PENAWARAN KHUSUS',live:'PROMOSI BERLANGSUNG',started:'PROMOSI DIMULAI',ending:'SEGERA BERAKHIR',reminder:'PENGINGAT: SEGERA BERAKHIR',upcoming:'PENAWARAN MENDATANG',ended:'PROMOSI BERAKHIR',thanks:'Terima kasih telah memilih All Convert',fallback:'All Convert selalu siap membantu',explore:'Lihat penawaran All Convert Pro terbaru.',soon:'Penawaran baru akan segera dimulai.',valid:'Berlaku:',starts:'Mulai:',plans:'Lihat Paket Pro',announcement:'PEMBARUAN ALL CONVERT'},
+          ru:{official:'ОФИЦИАЛЬНОЕ ОБЪЯВЛЕНИЕ',offer:'СПЕЦИАЛЬНОЕ ПРЕДЛОЖЕНИЕ',live:'АКЦИЯ ДЕЙСТВУЕТ',started:'АКЦИЯ НАЧАЛАСЬ',ending:'СКОРО ЗАВЕРШИТСЯ',reminder:'НАПОМИНАНИЕ: СКОРО ЗАВЕРШИТСЯ',upcoming:'СКОРОЕ ПРЕДЛОЖЕНИЕ',ended:'АКЦИЯ ЗАВЕРШЕНА',thanks:'Спасибо, что выбрали All Convert',fallback:'All Convert всегда рядом',explore:'Посмотрите последние предложения All Convert Pro.',soon:'Скоро начнётся новое предложение.',valid:'Действует:',starts:'Начало:',plans:'Тарифы Pro',announcement:'НОВОСТИ ALL CONVERT'},
+          it:{official:'ANNUNCIO UFFICIALE',offer:'OFFERTA SPECIALE',live:'PROMOZIONE ATTIVA',started:'PROMOZIONE INIZIATA',ending:'IN SCADENZA',reminder:'PROMEMORIA: IN SCADENZA',upcoming:'PROSSIMA OFFERTA',ended:'OFFERTA TERMINATA',thanks:'Grazie per aver scelto All Convert',fallback:'All Convert è sempre con te',explore:'Scopri le ultime offerte All Convert Pro.',soon:'Una nuova offerta inizierà presto.',valid:'Valida:',starts:'Inizia:',plans:'Vedi i piani Pro',announcement:'AGGIORNAMENTO ALL CONVERT'},
+          tr:{official:'RESMÎ DUYURU',offer:'ÖZEL TEKLİF',live:'KAMPANYA DEVAM EDİYOR',started:'KAMPANYA BAŞLADI',ending:'YAKINDA SONA ERİYOR',reminder:'HATIRLATMA: YAKINDA SONA ERİYOR',upcoming:'YAKLAŞAN TEKLİF',ended:'TEKLİF SONA ERDİ',thanks:'All Convert’i seçtiğiniz için teşekkürler',fallback:'All Convert her zaman yanınızda',explore:'En yeni All Convert Pro tekliflerini keşfedin.',soon:'Yeni bir teklif yakında başlayacak.',valid:'Geçerlilik:',starts:'Başlangıç:',plans:'Pro Planlarını Gör',announcement:'ALL CONVERT GÜNCELLEMESİ'},
+          vi:{official:'THÔNG BÁO CHÍNH THỨC',offer:'ƯU ĐÃI ĐẶC BIỆT',live:'ƯU ĐÃI ĐANG DIỄN RA',started:'ƯU ĐÃI ĐÃ BẮT ĐẦU',ending:'SẮP KẾT THÚC',reminder:'NHẮC NHỞ: SẮP KẾT THÚC',upcoming:'ƯU ĐÃI SẮP TỚI',ended:'ƯU ĐÃI ĐÃ KẾT THÚC',thanks:'Cảm ơn bạn đã chọn All Convert',fallback:'All Convert luôn đồng hành cùng bạn',explore:'Khám phá ưu đãi All Convert Pro mới nhất.',soon:'Ưu đãi mới sẽ sớm bắt đầu.',valid:'Có hiệu lực:',starts:'Bắt đầu:',plans:'Xem gói Pro',announcement:'CẬP NHẬT ALL CONVERT'},
+          th:{official:'ประกาศอย่างเป็นทางการ',offer:'ข้อเสนอพิเศษ',live:'โปรโมชันกำลังดำเนินอยู่',started:'เริ่มโปรโมชันแล้ว',ending:'ใกล้สิ้นสุด',reminder:'แจ้งเตือน: ใกล้สิ้นสุด',upcoming:'ข้อเสนอเร็วๆ นี้',ended:'ข้อเสนอสิ้นสุดแล้ว',thanks:'ขอบคุณที่เลือก All Convert',fallback:'All Convert พร้อมช่วยเหลือคุณเสมอ',explore:'ดูข้อเสนอ All Convert Pro ล่าสุด',soon:'ข้อเสนอใหม่จะเริ่มเร็วๆ นี้',valid:'ใช้ได้ถึง:',starts:'เริ่ม:',plans:'ดูแพ็กเกจ Pro',announcement:'อัปเดต ALL CONVERT'},
+          fil:{official:'OPISYAL NA ANUNSYO',offer:'ESPESYAL NA ALOK',live:'AKTIBO ANG PROMO',started:'NAGSIMULA NA ANG PROMO',ending:'MALAPIT NANG MATAPOS',reminder:'PAALALA: MALAPIT NANG MATAPOS',upcoming:'PAPARATING NA ALOK',ended:'TAPOS NA ANG PROMO',thanks:'Salamat sa pagpili sa All Convert',fallback:'Nandito ang All Convert para sa iyo',explore:'Tingnan ang pinakabagong All Convert Pro offers.',soon:'Magsisimula na ang bagong alok.',valid:'Valid:',starts:'Magsisimula:',plans:'Tingnan ang Pro Plans',announcement:'UPDATE SA ALL CONVERT'}};const L=()=>labels[currentLocale]||labels.en;const once=key=>{try{if(localStorage.getItem(key))return false;localStorage.setItem(key,'1');return true}catch(e){return true}};let request=0;function show(eyebrow,title,message,dates){$('promoEyebrow').textContent=eyebrow;$('promoTitle').textContent=title;$('promoMessage').textContent=message;$('promoDates').textContent=dates;$('promoPlansBtn').textContent=L().plans+' ›';box.style.display='block'}async function load(locale){currentLocale=locale||'en';const seq=++request;const l=L();try{const r=await fetch(endpoint+'?locale='+encodeURIComponent(currentLocale),{headers:{apikey:publicKey},cache:'no-store'});if(!r.ok)throw new Error('promo unavailable');const data=await r.json();if(seq!==request)return;const active=data.active||null,next=data.next||null,previous=(()=>{try{return localStorage.getItem('ac_last_active_promo')||''}catch(e){return ''}})();if(active){const id=String(active.id||active.campaign_key);const startKey='ac_promo_'+id+'_start',endingKey='ac_promo_'+id+'_ending';let notice=l.live;if(once(startKey))notice=l.started;else if(data.ending_soon&&once(endingKey))notice=l.reminder;else if(data.ending_soon)notice=l.ending;show(notice,active.title||l.fallback,active.message||l.explore,(active.promo_label?active.promo_label+' · ':'')+l.valid+' '+fmt(active.starts_at)+' – '+fmt(active.ends_at));try{localStorage.setItem('ac_last_active_promo',id)}catch(e){}return}if(data.ended){const endedId=String(data.ended.id||data.ended.campaign_key);if(once('ac_promo_'+endedId+'_ended')){show(l.ended,l.thanks,'',l.valid+' '+fmt(data.ended.ends_at));return}}if(previous){if(once('ac_promo_'+previous+'_ended')){show(l.ended,l.thanks,l.explore,'');try{localStorage.removeItem('ac_last_active_promo')}catch(e){}return}try{localStorage.removeItem('ac_last_active_promo')}catch(e){}}if(next){show(l.upcoming,next.title||l.fallback,next.message||l.soon,(next.promo_label?next.promo_label+' · ':'')+l.starts+' '+fmt(next.starts_at));return}const fallback=data.fallback||{};show(l.announcement,fallback.title||l.fallback,fallback.message||l.explore,'')}catch(e){if(seq!==request)return;show(l.announcement,l.fallback,l.explore,'')}}window.addEventListener('allconvert:languagechange',e=>load(e.detail&&e.detail.language||document.documentElement.lang||'en'));load(currentLocale)})();</script>"""
+          endpoint_marker = "const endpoint='https://hckvehpkzwyerkwpdvlz.supabase.co/functions/v1/allconvert-promotions';"
+          endpoint_pos = h.find(endpoint_marker)
+          if endpoint_pos >= 0:
+              bad_start = h.rfind('<script>', 0, endpoint_pos)
+              bad_end = h.find('</script>', endpoint_pos)
+              if bad_start < 0 or bad_end < 0:
+                  raise SystemExit("FAIL: misplaced promotion script could not be isolated")
+              h = h[:bad_start] + h[bad_end + len('</script>'):]
+          # Insert the announcement into the real document body, never by searching
+          # for its id: that id may also occur inside the DOCX HTML template literal
+          # in the main JavaScript, where inserting a <script> closes the app script.
+          body_match = __import__('re').search(r'<body\b[^>]*>', h, flags=__import__('re').I)
+          if not body_match:
+              raise SystemExit("FAIL: HTML body insertion point not found")
+          promo_card = '<section id="promoAnnouncement" class="ac-promo" style="display:none"><div class="ac-promo-top"><div class="ac-promo-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.2 6.1L20 10l-5.8 2.1L12 18l-2.2-5.9L4 10l5.8-1.9L12 2Zm7 12 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14Z" fill="currentColor"/></svg></div><div class="ac-promo-heading"><span id="promoEyebrow" class="ac-promo-kicker">PENGUMUMAN RASMI</span><span class="ac-promo-brand">ALL CONVERT PRO</span></div><span class="ac-promo-live">TAWARAN</span></div><div class="ac-promo-content"><h2 id="promoTitle">Tawaran khas All Convert Pro</h2><p id="promoMessage"></p><div class="ac-promo-footer"><span id="promoDates" class="ac-promo-dates"></span><button type="button" id="promoPlansBtn" class="ac-promo-cta">Lihat pelan Pro <span aria-hidden="true">›</span></button></div></div></section>\n'
+
+          promo_css = r"""<style>
+          .ac-promo{box-sizing:border-box;position:relative;isolation:isolate;width:calc(100% - 28px);max-width:760px;margin:18px auto 22px;padding:1px;border-radius:27px;overflow:hidden;background:linear-gradient(125deg,#22cfee 0%,#7768ff 42%,#22cfee 75%,#3b4c78 100%);box-shadow:0 18px 48px #0008,0 0 28px #7768ff24;color:#fff;font-family:inherit}
+          .ac-promo:before{content:'';position:absolute;z-index:-1;inset:0;background:radial-gradient(ellipse at 12% 0%,#7768ff66,transparent 43%),radial-gradient(ellipse at 100% 100%,#22cfee44,transparent 45%)}
+          .ac-promo-top{position:relative;display:flex;align-items:center;gap:12px;padding:16px 18px;background:linear-gradient(112deg,#201c55 0%,#111b3d 58%,#0b3042 100%);border-radius:26px 26px 0 0}
+          .ac-promo-mark{width:46px;height:46px;flex:0 0 46px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#9387ff 0%,#7768ff 48%,#22cfee 100%);color:#fff;box-shadow:0 7px 22px #7768ff66,inset 0 1px 0 #ffffff66}
+          .ac-promo-mark svg{width:27px;height:27px;filter:drop-shadow(0 0 8px #22cfee99)}
+          .ac-promo-heading{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+          .ac-promo-kicker{font-size:9px;font-weight:950;letter-spacing:.16em;color:#70eaff}
+          .ac-promo-brand{font-size:13px;font-weight:900;letter-spacing:.09em;color:#fff}
+          .ac-promo-live{padding:7px 10px;border:1px solid #7d73ff88;border-radius:999px;background:linear-gradient(120deg,#7768ff35,#22cfee20);color:#dceaff;font-size:9px;font-weight:950;letter-spacing:.09em;box-shadow:inset 0 1px 0 #ffffff18}
+          .ac-promo-content{position:relative;padding:20px 20px 18px;background:linear-gradient(145deg,#111b39 0%,#0c1224 65%,#0b2839 120%)}
+          .ac-promo-content:before{content:'';position:absolute;right:-34px;top:-56px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,#7768ff32 0%,#22cfee12 38%,transparent 72%);pointer-events:none}
+          .ac-promo-content:after{content:'✦  ✧  ✦';position:absolute;right:19px;top:14px;color:#a99fff9c;font-size:20px;letter-spacing:9px;text-shadow:0 0 16px #7768ff88;pointer-events:none}
+          .ac-promo-content h2{position:relative;max-width:90%;margin:0 0 10px;color:#fff;font-size:clamp(20px,4.5vw,25px);line-height:1.22;font-weight:950;letter-spacing:-.025em;text-shadow:0 3px 20px #7768ff38}
+          .ac-promo-content p{position:relative;max-width:95%;margin:0;color:#c1cce2;font-size:13px;line-height:1.7}
+          .ac-promo-footer{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid #ffffff16}
+          .ac-promo-dates{display:inline-flex;align-items:center;min-height:32px;padding:6px 11px;border:1px solid #53618b88;border-radius:11px;background:linear-gradient(120deg,#1b2448,#122b3c);color:#d2def3;font-size:10px;font-weight:800;box-shadow:inset 0 1px 0 #ffffff10}
+          .ac-promo-cta{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:0 18px;border:1px solid #ffffff55;border-radius:13px;background:linear-gradient(110deg,#8170ff 0%,#6b63f2 42%,#18bfe2 100%);box-shadow:0 8px 22px #4b62ff55,inset 0 1px 0 #ffffff66;color:#fff;font-size:12px;font-weight:950;letter-spacing:.01em;cursor:pointer}
+          .ac-promo-cta span{font-size:19px;line-height:1}
+          .ac-promo-cta:active{transform:translateY(1px);filter:brightness(.95)}
+          @media(max-width:380px){.ac-promo{width:calc(100% - 20px);border-radius:21px}.ac-promo-top{padding:13px 14px}.ac-promo-content{padding:16px 15px}.ac-promo-content h2{max-width:100%;font-size:19px}.ac-promo-footer{align-items:stretch;flex-direction:column}.ac-promo-cta{width:100%}}
+          </style>"""
+          if '.ac-promo{' not in h:
+              h = h.replace('</head>', promo_css + '\n</head>', 1)
+          # Recompute the body insertion point after adding head CSS; otherwise the
+          # previous byte offset can land inside the style block and corrupt the page.
+          body_match = __import__('re').search(r'<body\b[^>]*>', h, flags=__import__('re').I)
+          if not body_match:
+              raise SystemExit("FAIL: HTML body insertion point not found after promo CSS")
+          insert_at = body_match.end()
+          h = h[:insert_at] + promo_card + promo_script + '\n' + h[insert_at:]
+          if h.count("const endpoint='https://hckvehpkzwyerkwpdvlz.supabase.co/functions/v1/allconvert-promotions';") != 1:
+              raise SystemExit("FAIL: promotion script must exist exactly once in the main page")
+          if "b=new Blob([`<!doctype html><html><head><meta charset=\"utf-8\"><title>Converted DOCX</title></head><body>${h}</body></html>`]" not in h:
+              raise SystemExit("FAIL: DOCX HTML export template is not intact")
+          # Give the isolated file picker a visible, consistent touch target.
+          picker_css = '.pick-file-btn{margin-top:14px;min-height:44px;padding:0 20px;border:0;border-radius:12px;background:linear-gradient(135deg,#7768ff,#22cfee);color:#fff;font-weight:800;cursor:pointer}'
+          if '.pick-file-btn{' not in h:
+              h = h.replace('</style>', picker_css + '</style>', 1)
+          # Repair conversion routes that previously produced raw HTML as PDF/text.
+          html_helpers = r""" 
+          function htmlToText(source){const doc=new DOMParser().parseFromString(String(source),"text/html");doc.querySelectorAll("script,style,iframe,object,embed").forEach(x=>x.remove());return (doc.body.innerText||doc.body.textContent||"").replace(/\n{3,}/g,"\n\n").trim()}
+          async function htmlToPDF(source){const doc=new DOMParser().parseFromString(String(source),"text/html");doc.querySelectorAll("script,iframe,object,embed,form,base").forEach(x=>x.remove());const root=document.createElement("div");Object.assign(root.style,{position:"fixed",left:"-100000px",top:"0",width:"794px",minHeight:"1123px",padding:"45px",boxSizing:"border-box",background:"#fff",color:"#111",fontFamily:"Arial,sans-serif",fontSize:"16px",lineHeight:"1.5"});const styles=[...doc.head.querySelectorAll("style")].map(x=>x.textContent).join("\n");root.innerHTML=(styles?"<style>"+styles+"</style>":"")+(doc.body.innerHTML||"");root.querySelectorAll("*").forEach(el=>[...el.attributes].forEach(a=>{if(/^on/i.test(a.name)||((a.name==="href"||a.name==="src")&&/^\s*javascript:/i.test(a.value)))el.removeAttribute(a.name)}));document.body.appendChild(root);try{const canvas=await html2canvas(root,{scale:1.5,backgroundColor:"#fff",useCORS:false,logging:false}),{jsPDF}=window.jspdf,p=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"}),pw=p.internal.pageSize.getWidth(),ph=p.internal.pageSize.getHeight(),margin=8,usable=pw-2*margin,pixelsPerMm=canvas.width/usable,pagePixels=Math.floor((ph-2*margin)*pixelsPerMm);let y=0;while(y<canvas.height){const height=Math.min(pagePixels,canvas.height-y),slice=document.createElement("canvas");slice.width=canvas.width;slice.height=height;slice.getContext("2d").drawImage(canvas,0,y,canvas.width,height,0,0,canvas.width,height);if(y>0)p.addPage();p.addImage(slice.toDataURL("image/jpeg",.92),"JPEG",margin,margin,usable,height/pixelsPerMm,undefined,"FAST");y+=height}return p.output("blob")}finally{root.remove()}}
+          async function extractPDFText(file){const pdfjs=await getPdfJs(),pdf=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise,max=Math.min(pdf.numPages,50),parts=[];for(let n=1;n<=max;n++){setStatus("Membaca PDF: muka surat "+n+"/"+pdf.numPages+"…");const page=await pdf.getPage(n),content=await page.getTextContent(),selectable=(content.items||[]).map(x=>x.str||"").join(" ").trim();if(selectable){parts.push("--- Muka surat "+n+" ---\n"+selectable)}else{const base=page.getViewport({scale:1}),scale=Math.min(2.2,1800/base.width),vp=page.getViewport({scale}),canvas=document.createElement("canvas");canvas.width=Math.ceil(vp.width);canvas.height=Math.ceil(vp.height);await page.render({canvasContext:canvas.getContext("2d"),viewport:vp}).promise;const scanned=await ocrImage(canvas);parts.push("--- Muka surat "+n+" ---\n"+scanned.trim())}}if(pdf.numPages>max)parts.push("[Bacaan dihentikan selepas "+max+" muka surat.]");return parts.join("\n\n").trim()}
+          """
+          if "async function htmlToPDF(" not in h:
+              helper_anchor = "async function extractZip(f){"
+              if helper_anchor not in h: raise SystemExit("FAIL: conversion helper insertion point missing")
+              h = h.replace(helper_anchor, html_helpers + "\n" + helper_anchor, 1)
+          if 'const text=await ocrPDF(currentFile);' in h:
+              h = h.replace('const text=await ocrPDF(currentFile);', 'const text=await extractPDFText(currentFile);', 1)
+          else: raise SystemExit("FAIL: PDF-to-text conversion route not found")
+          if 'if(to==="pdf")b=textToPDF(t);else if(to==="html"){' in h:
+              h = h.replace('if(to==="pdf")b=textToPDF(t);else if(to==="html"){', 'if(to==="pdf")b=from==="html"?await htmlToPDF(t):textToPDF(t);else if(to==="html"){', 1)
+          else: raise SystemExit("FAIL: HTML-to-PDF conversion route not found")
+          if 'else{b=new Blob([t],{type:"text/plain"});showText(t)}}else if(from==="pdf"){' in h:
+              h = h.replace('else{b=new Blob([t],{type:"text/plain"});showText(t)}}else if(from==="pdf"){', 'else{const output=from==="html"?htmlToText(t):t;b=new Blob([output],{type:"text/plain"});showText(output)}}else if(from==="pdf"){', 1)
+          else: raise SystemExit("FAIL: HTML-to-TXT conversion route not found")
+          old_download = 'function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;a.rel="noopener";a.style.display="none";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),10000)}'
+          new_download = 'async function downloadBlob(blob,name){if(window.AndroidBridge?.download){try{const encoded=await blobB64(blob);window.AndroidBridge.download(name,blob.type||"application/octet-stream",encoded);return true}catch(e){console.error("Native ZIP download failed",e)}}const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;a.rel="noopener";a.style.display="none";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),10000);return true}'
+          if old_download in h: h = h.replace(old_download,new_download,1)
+          else: raise SystemExit("FAIL: ZIP download helper not found")
+          p.write_text(h, encoding="utf-8")
+          PY
+          grep -q 'recordConverted' app/src/main/assets/index.html
+          grep -q '#admobBanner{display:none!important' app/src/main/assets/index.html
           grep -q 'ALL CONVERT ADMOB LIVE BANNER' app/src/main/assets/index.html
           grep -q 'ca-app-pub-9940728659432865~2706136459' app/src/main/assets/index.html
           grep -q 'ca-app-pub-9940728659432865/6234492932' app/src/main/assets/index.html
@@ -40,7 +199,111 @@ jobs:
           grep -q 'ca-app-pub-9940728659432865/6537570257' app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q 'ca-app-pub-9940728659432865/5224488586' app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q 'ca-app-pub-9940728659432865/1006961841' app/src/main/java/com/allconvert/app/MainActivity.java
+          python3 - <<'PY'
+          import re, subprocess
+          from pathlib import Path
+          html = Path("app/src/main/assets/index.html").read_text(encoding="utf-8")
+          opened = len(re.findall(r"<script\b", html, flags=re.I))
+          closed = len(re.findall(r"</script\s*>", html, flags=re.I))
+          if opened != closed:
+              raise SystemExit(f"FAIL: script tags unbalanced ({opened} open / {closed} close)")
+          required = ["htmlToPDF(", "htmlToText(", "extractPDFText(", "async function downloadBlob(", "conversionCompleted"]
+          missing = [x for x in required if x not in html]
+          if missing:
+              raise SystemExit("FAIL: missing conversion fixes: " + ", ".join(missing))
+          scripts = re.findall(r"<script\b[^>]*>(.*?)</script\s*>", html, flags=re.I | re.S)
+          checked = 0
+          for index, script in enumerate(scripts):
+              if not script.strip():
+                  continue
+              path = Path(f"/tmp/allconvert-inline-{index}.js")
+              path.write_text(script, encoding="utf-8")
+              subprocess.run(["node", "--check", str(path)], check=True)
+              checked += 1
+          print(f"Inline JavaScript syntax verified: {checked} scripts; HTML scripts balanced.")
+          PY
           echo "HTML asset and native AdMob IDs verified: $ACTUAL bytes"
+
+      - name: Install All Convert international language support
+        working-directory: allconvert_native
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/src/main/assets/i18n.js
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/assets/index.html")
+          h = p.read_text(encoding="utf-8")
+          tag = '<script src="i18n.js"></script>'
+          if tag not in h:
+              pos = h.lower().rfind("</body>")
+              if pos < 0:
+                  raise SystemExit("FAIL: HTML body closing tag missing for language support")
+              h = h[:pos] + tag + "\n" + h[pos:]
+              p.write_text(h, encoding="utf-8")
+          if 'id="ac-language-select"' not in Path("app/src/main/assets/i18n.js").read_text(encoding="utf-8"):
+              raise SystemExit("FAIL: language selector script incomplete")
+          if 'src="i18n.js"' not in h:
+              raise SystemExit("FAIL: language script was not attached")
+          nav_css = """<style>
+          body{padding-bottom:92px!important}
+          .ac-bottom-nav{position:fixed;z-index:9990;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:8px 9px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid #293654;background:linear-gradient(180deg,rgba(16,24,60,.97),rgba(7,11,24,.99));box-shadow:0 -12px 32px #0008;backdrop-filter:blur(18px)}
+          .ac-bottom-nav button{display:flex;min-width:0;min-height:52px;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid transparent;border-radius:13px;background:transparent;color:#9aa7c1;font:700 10px system-ui;cursor:pointer}
+          .ac-bottom-nav button svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+          .ac-bottom-nav button.active{border-color:#3b4c78;background:linear-gradient(135deg,#242052,#102b40);color:#22cfee;box-shadow:inset 0 0 18px #7768ff22}
+          @media(max-width:360px){.ac-bottom-nav{padding-left:5px;padding-right:5px}.ac-bottom-nav button{font-size:9px}}
+          </style>"""
+          if "ac-bottom-nav" not in h:
+              if "</head>" not in h.lower():
+                  raise SystemExit("FAIL: HTML head closing tag missing for bottom navigation")
+              h = h.replace("</head>", nav_css + "\n</head>", 1)
+              nav = """<nav class="ac-bottom-nav" aria-label="Main navigation">
+              <button type="button" data-tab="home" class="active" aria-current="page"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Laman Utama</span></button>
+              <button type="button" data-tab="convert"><svg viewBox="0 0 24 24"><path d="M4 7h13m-4-4 4 4-4 4M20 17H7m4-4-4 4 4 4"/></svg><span>Tukar</span></button>
+              <button type="button" data-tab="pro"><svg viewBox="0 0 24 24"><path d="m12 3 2.3 5.1 5.7.7-4.2 4 1 5.7-4.8-2.8-4.8 2.8 1-5.7-4.2-4 5.7-.7z"/></svg><span>Pro</span></button>
+              <button type="button" data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.1h-2.6v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1A1.7 1.7 0 0 0 8 15a1.7 1.7 0 0 0-1.5-1H6.4v-2.6h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.1H15v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1V14h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Tetapan</span></button>
+              </nav>
+              <script>
+              (function(){
+                const nav=document.querySelector('.ac-bottom-nav');if(!nav||nav.dataset.ready)return;nav.dataset.ready='1';
+                nav.addEventListener('click',function(e){
+                  const b=e.target.closest('button[data-tab]');if(!b)return;
+                  nav.querySelectorAll('button').forEach(x=>{x.classList.toggle('active',x===b);if(x===b)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
+                  const tab=b.dataset.tab;
+                  if(tab==='home'){window.scrollTo({top:0,behavior:'smooth'});if(window.AndroidBridge&&AndroidBridge.setAdPage)AndroidBridge.setAdPage('home')}
+                  else if(tab==='convert'){const target=document.querySelector('.hero')||document.querySelector('.controls');target&&target.scrollIntoView({behavior:'smooth',block:'start'});if(window.AndroidBridge&&AndroidBridge.setAdPage)AndroidBridge.setAdPage('convert')}
+                  else if(tab==='pro'){if(window.AndroidBridge&&AndroidBridge.openPro)AndroidBridge.openPro()}
+                  else if(tab==='settings'){if(window.AndroidBridge&&AndroidBridge.openSettings)AndroidBridge.openSettings()}
+                });
+              })();
+              </script>"""
+              pos = h.lower().rfind("</body>")
+              if pos < 0:
+                  raise SystemExit("FAIL: HTML body closing tag missing for bottom navigation")
+              h = h[:pos] + nav + "\n" + h[pos:]
+          print("International language support and original four-tab navigation attached.")
+          p.write_text(h, encoding="utf-8")
+          PY
+          node --check app/src/main/assets/i18n.js
+          grep -q 'src="i18n.js"' app/src/main/assets/index.html
+          grep -q 'Object.assign(D.pt' app/src/main/assets/i18n.js
+          grep -q 'allconvert_language_preference' app/src/main/assets/i18n.js
+          python3 - <<'PY'
+          from pathlib import Path
+          h=Path("app/src/main/assets/index.html").read_text(encoding="utf-8")
+          checks={
+            "promo card after body": h.find('<section id="promoAnnouncement"') > h.lower().find("<body"),
+            "promo card outside style": h.lower().find('<section id="promoannouncement"') > h.lower().rfind("</style>",0,h.lower().find('<section id="promoannouncement"')),
+            "four-tab navigation": 'class="ac-bottom-nav"' in h and all(f'data-tab="{x}"' in h for x in ("home","convert","pro","settings")),
+            "Pro CTA": 'id="promoPlansBtn"' in h,
+            "international language selector script": 'src="i18n.js"' in h,
+            "Free result action lock": 'window.__allConvertLockResultActions' in h and 'window.__allConvertUnlockResultActions' in h,
+            "Native Free action guard": "allowFreeResultAction" in Path("app/src/main/java/com/allconvert/app/MainActivity.java").read_text(encoding="utf-8"),
+          }
+          failed=[name for name,ok in checks.items() if not ok]
+          for name,ok in checks.items(): print(("PASS: " if ok else "FAIL: ")+name)
+          if failed: raise SystemExit("FAIL: "+", ".join(failed))
+          PY
 
       - name: Audit conversion quality engine
         working-directory: allconvert_native
@@ -101,4 +364,4 @@ jobs:
           retention-days: 14
 
 # Native file actions repaired on 2026-10-12
-# CI retrigger: 2026-10-13
+# CI retrigger: 2026-11-22 final launcher and ad-layout validation

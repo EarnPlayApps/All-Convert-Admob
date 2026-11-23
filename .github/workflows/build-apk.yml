@@ -205,6 +205,32 @@ jobs:
           PY
           echo "HTML asset and native AdMob IDs verified: $ACTUAL bytes"
 
+      - name: Install All Convert international language support
+        working-directory: allconvert_native
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s app/src/main/assets/i18n.js
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/assets/index.html")
+          h = p.read_text(encoding="utf-8")
+          tag = '<script src="i18n.js"></script>'
+          if tag not in h:
+              pos = h.lower().rfind("</body>")
+              if pos < 0:
+                  raise SystemExit("FAIL: HTML body closing tag missing for language support")
+              h = h[:pos] + tag + "\\n" + h[pos:]
+              p.write_text(h, encoding="utf-8")
+          if 'id="ac-language-select"' not in Path("app/src/main/assets/i18n.js").read_text(encoding="utf-8"):
+              raise SystemExit("FAIL: language selector script incomplete")
+          if 'src="i18n.js"' not in h:
+              raise SystemExit("FAIL: language script was not attached")
+          print("International language support attached to All Convert HTML.")
+          PY
+          node --check app/src/main/assets/i18n.js
+          grep -q 'src="i18n.js"' app/src/main/assets/index.html
+
       - name: Audit conversion quality engine
         working-directory: allconvert_native
         shell: bash

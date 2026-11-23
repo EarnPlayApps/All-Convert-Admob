@@ -76,8 +76,8 @@ jobs:
               raise SystemExit("FAIL: automatic History hook was not inserted")
           p.write_text(h, encoding="utf-8")
           print("File picker isolated to #pickFileBtn")
-          grep -q 'recordConverted' app/src/main/assets/index.html
           PY
+          grep -q 'recordConverted' app/src/main/assets/index.html
           grep -q '#admobBanner{display:none!important' app/src/main/assets/index.html
           grep -q 'ALL CONVERT ADMOB LIVE BANNER' app/src/main/assets/index.html
           grep -q 'ca-app-pub-9940728659432865~2706136459' app/src/main/assets/index.html

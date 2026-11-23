@@ -7,6 +7,10 @@ on:
   push:
     branches: [ main, fix/app-open-cooldown-5min ]
 
+concurrency:
+  group: all-convert-apk-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

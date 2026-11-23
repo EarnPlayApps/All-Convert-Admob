@@ -528,13 +528,14 @@ public class MainActivity extends Activity {
     }
 
     private class AndroidBridge{
+        @JavascriptInterface public void recordConverted(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);if(data.length>0)recordHistory(name,type,data);}
         @JavascriptInterface public void download(String n,String m,String b){
-            String name=safe(n); String type=mime(m); byte[] data=dec(b); recordHistory(name,type,data);
+            String name=safe(n); String type=mime(m); byte[] data=dec(b);
             if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}else{saveDownload(name,type,data);}
         }
-        @JavascriptInterface public void saveAs(String n,String m,String b){String name=safe(n),type=mime(m);pendingBytes=dec(b);recordHistory(name,type,pendingBytes);Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,safe(n));startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}
-        @JavascriptInterface public void share(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);recordHistory(name,type,data);shareOrOpen(name,type,data);}
-        @JavascriptInterface public void openWith(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);recordHistory(name,type,data);openFile(name,type,data);}
+        @JavascriptInterface public void saveAs(String n,String m,String b){String name=safe(n);pendingBytes=dec(b);Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,name);startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}
+        @JavascriptInterface public void share(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);shareOrOpen(name,type,data);}
+        @JavascriptInterface public void openWith(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);openFile(name,type,data);}
         @JavascriptInterface public void showRewarded(){runOnUiThread(MainActivity.this::showRewardedIfReady);}
     }
     private byte[] dec(String s){try{return Base64.getDecoder().decode(s);}catch(Exception e){return new byte[0];}}

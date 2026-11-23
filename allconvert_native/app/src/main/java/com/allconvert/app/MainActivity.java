@@ -90,13 +90,15 @@ public class MainActivity extends Activity {
     private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
     private static final String PREF_CONVERSION_COUNT="conversion_count";
 
+    private volatile String appLanguage="en"; private volatile Map<String,String> nativeTranslations=new HashMap<>(), englishTranslations=new HashMap<>();
+    private String tx(String value){if(value==null)return "";if("ms".equals(appLanguage))return value;String v=nativeTranslations.get(value);if(v==null)v=englishTranslations.get(value);return v==null?value:v;}
     private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView menuEntry, settingsEntry, historyEntry; private BillingClient billingClient; private final Map<String,ProductDetails> proProducts=new HashMap<>(); private volatile boolean isPro=false; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false; private volatile String currentAdPage="home";
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
     private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;
 
     @Override public void onCreate(Bundle b){
-        super.onCreate(b); setContentView(R.layout.activity_main);
+        super.onCreate(b); appLanguage=getSharedPreferences("all_convert_language",MODE_PRIVATE).getString("language","en"); setContentView(R.layout.activity_main);
         lastAppOpenShown=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getLong(PREF_LAST_APP_OPEN,0L);conversionCount=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getInt(PREF_CONVERSION_COUNT,0);
         webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); menuEntry=findViewById(R.id.menuEntry); settingsEntry=findViewById(R.id.settingsEntry); historyEntry=findViewById(R.id.historyEntry); rewardButton=null;
         menuEntry.setOnClickListener(v->showMainMenuDialog());
@@ -166,7 +168,7 @@ public class MainActivity extends Activity {
     }
     private void onPurchasesUpdated(BillingResult result,List<Purchase> purchases){
         if(result.getResponseCode()==BillingClient.BillingResponseCode.OK){if(purchases!=null)hasValidProPurchase(result,purchases);queryProPurchases();}
-        else if(result.getResponseCode()!=BillingClient.BillingResponseCode.USER_CANCELED)Toast.makeText(this,"Pembelian tidak berjaya. Cuba lagi.",Toast.LENGTH_LONG).show();
+        else if(result.getResponseCode()!=BillingClient.BillingResponseCode.USER_CANCELED)Toast.makeText(this,tx("Pembelian tidak berjaya. Cuba lagi."),Toast.LENGTH_LONG).show();
     }
     private void setProState(boolean enabled){runOnUiThread(()->{
         isPro=enabled;
@@ -215,18 +217,18 @@ public class MainActivity extends Activity {
         d.setColors(new int[]{light,color,deep});d.setCornerRadius(dp(20));d.setStroke(dp(1),stroke);return d;
     }
     private TextView proText(String value,int size,int color,boolean bold){
-        TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);
+        TextView t=new TextView(this);t.setText(tx(value));t.setTextSize(size);t.setTextColor(color);
         if(bold)t.setTypeface(null,android.graphics.Typeface.BOLD);
         t.setGravity(Gravity.CENTER_VERTICAL);return t;
     }
     private Button proButton(String label,boolean primary){
-        Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextSize(14);
+        Button b=new Button(this);b.setText(tx(label));b.setAllCaps(false);b.setTextSize(14);
         b.setTextColor(Color.WHITE);
         b.setBackground(proBg(primary?Color.rgb(119,104,255):Color.rgb(18,27,45),primary?Color.rgb(34,207,238):Color.rgb(59,76,120)));
         b.setMinHeight(dp(48));return b;
     }
     private void addProFeature(LinearLayout parent,String value){
-        TextView t=proText("✓  "+value,13,Color.rgb(185,197,220),false);
+        TextView t=proText("✓  "+tx(value),13,Color.rgb(185,197,220),false);
         t.setPadding(dp(4),dp(5),dp(4),dp(5));parent.addView(t,new LinearLayout.LayoutParams(-1,-2));
     }
     private void showProPlansDialog(){
@@ -265,8 +267,8 @@ public class MainActivity extends Activity {
             for(String id:new String[]{PRO_SUBS[1],PRO_LIFETIME,PRO_SUBS[0]}){
                 ProductDetails product=proProducts.get(id);
                 boolean lifetime=id.equals(PRO_LIFETIME);
-                String name=lifetime?"Seumur Hidup":id.equals(PRO_SUBS[0])?"Bulanan":"Tahunan";
-                String suffix=lifetime?" • sekali bayar":id.equals(PRO_SUBS[0])?" / bulan":" / tahun";
+                String name=tx(lifetime?"Seumur Hidup":id.equals(PRO_SUBS[0])?"Bulanan":"Tahunan");
+                String suffix=tx(lifetime?" • sekali bayar":id.equals(PRO_SUBS[0])?" / bulan":" / tahun");
                 LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(14),dp(16),dp(14));card.setBackground(proBg(Color.rgb(12,18,33),Color.rgb(59,76,120)));card.setElevation(dp(4));
                 if(id.equals(PRO_SUBS[1])||lifetime){
                     TextView tag=proText(id.equals(PRO_SUBS[1])?"★  PROMOSI TERHAD • PILIHAN TERBAIK  ★":"✦  PROMOSI TERHAD • BAYAR SEKALI  ✦",11,id.equals(PRO_SUBS[1])?Color.rgb(255,204,92):Color.rgb(34,207,238),true);
@@ -280,7 +282,7 @@ public class MainActivity extends Activity {
                 addProFeature(card,"Pengalaman tanpa iklan semasa Pro aktif");
                 addProFeature(card,"History sehingga 50 fail / 200 MB keseluruhan (maksimum 50 MB setiap fail)");
                 addProFeature(card,"Pulihkan pembelian melalui Google Play");
-                Button choose=proButton(lifetime?"Beli Akses Seumur Hidup":"Pilih Pelan "+name,true);choose.setOnClickListener(v->{if(product==null){queryProProducts();Toast.makeText(this,"Pelan belum tersedia di Google Play. Pastikan produk dan negara jualan telah diaktifkan.",Toast.LENGTH_LONG).show();}else showProScreen(1,product);});
+                Button choose=proButton(lifetime?"Beli Akses Seumur Hidup":"Pilih Pelan "+name,true);choose.setOnClickListener(v->{if(product==null){queryProProducts();Toast.makeText(this,tx("Pelan belum tersedia di Google Play. Pastikan produk dan negara jualan telah diaktifkan."),Toast.LENGTH_LONG).show();}else showProScreen(1,product);});
                 LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.topMargin=dp(10);body.addView(card,cp);card.addView(choose);
                 LinearLayout.LayoutParams gap=new LinearLayout.LayoutParams(-1,dp(12));body.addView(new View(this),gap);
             }
@@ -292,7 +294,7 @@ public class MainActivity extends Activity {
             TextView methods=proText("Pembayaran melalui Google Play",16,Color.WHITE,true);methods.setPadding(dp(4),dp(18),0,dp(8));body.addView(methods);
             TextView google=proText("Google Play\nPembelian selamat menggunakan kaedah pembayaran yang tersedia untuk negara akaun anda. Harga dipaparkan dalam mata wang tempatan oleh Google Play.",14,Color.rgb(221,229,245),true);
             google.setPadding(dp(16),dp(16),dp(16),dp(16));google.setBackground(proBg(Color.rgb(12,18,33),Color.rgb(59,76,120)));google.setElevation(dp(3));LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(-1,-2);gp.topMargin=dp(4);body.addView(google,gp);
-            Button pay=proButton("Teruskan dengan Google Play",true);pay.setOnClickListener(v->{if(selected!=null){proDialog.dismiss();launchProPurchase(selected);}else Toast.makeText(this,"Sila pilih pelan dahulu.",Toast.LENGTH_SHORT).show();});LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=dp(16);body.addView(pay,pp);
+            Button pay=proButton("Teruskan dengan Google Play",true);pay.setOnClickListener(v->{if(selected!=null){proDialog.dismiss();launchProPurchase(selected);}else Toast.makeText(this,tx("Sila pilih pelan dahulu."),Toast.LENGTH_SHORT).show();});LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=dp(16);body.addView(pay,pp);
             TextView legal=proText("Akses Pro hanya diaktifkan selepas Google Play mengesahkan pembelian. Langganan bulanan dan tahunan diperbaharui secara automatik mengikut terma Google Play; pelan seumur hidup ialah bayaran sekali sahaja.",12,Color.rgb(166,180,207),false);legal.setPadding(dp(4),dp(12),dp(4),0);body.addView(legal);
         }else if(screen==2||screen==3||screen==4){
             if(screen==3){
@@ -302,8 +304,8 @@ public class MainActivity extends Activity {
                 TextView status=proText(isPro?"●  All Convert Pro — AKTIF":"○  All Convert Pro — BELUM AKTIF",17,isPro?Color.rgb(20,145,80):Color.rgb(105,112,128),true);
                 status.setPadding(dp(16),dp(18),dp(16),dp(18));status.setBackground(proBg(Color.rgb(18,27,45),Color.rgb(59,76,120)));body.addView(status);
                 TextView details=proText(isPro?"Akses Pro tersedia pada peranti ini.\nStatus akan disemak semula melalui Google Play.":"Tiada pembelian Pro aktif ditemui.\nPulihkan pembelian untuk menyemak semula transaksi terdahulu.",14,Color.rgb(190,202,225),false);details.setPadding(dp(8),dp(14),dp(8),dp(14));body.addView(details);
-                Button restore=proButton("Pulihkan Pembelian",false);restore.setOnClickListener(v->{queryProPurchases();Toast.makeText(this,"Sedang menyemak pembelian Google Play…",Toast.LENGTH_SHORT).show();});body.addView(restore);
-                Button manage=proButton("Pengurusan / Batal Langganan",false);manage.setOnClickListener(v->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/account/subscriptions?package=com.allconvert.app")));}catch(Exception e){Toast.makeText(this,"Halaman langganan Google Play tidak dapat dibuka.",Toast.LENGTH_SHORT).show();}});LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);mp.topMargin=dp(8);body.addView(manage,mp);
+                Button restore=proButton("Pulihkan Pembelian",false);restore.setOnClickListener(v->{queryProPurchases();Toast.makeText(this,tx("Sedang menyemak pembelian Google Play…"),Toast.LENGTH_SHORT).show();});body.addView(restore);
+                Button manage=proButton("Pengurusan / Batal Langganan",false);manage.setOnClickListener(v->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/account/subscriptions?package=com.allconvert.app")));}catch(Exception e){Toast.makeText(this,tx("Halaman langganan Google Play tidak dapat dibuka."),Toast.LENGTH_SHORT).show();}});LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);mp.topMargin=dp(8);body.addView(manage,mp);
             }
         }
         scroll.addView(body);page.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
@@ -313,7 +315,7 @@ public class MainActivity extends Activity {
     private void launchProPurchase(ProductDetails product){
         BillingFlowParams.ProductDetailsParams.Builder detail=BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(product);
         if(BillingClient.ProductType.SUBS.equals(product.getProductType())){
-            if(product.getSubscriptionOfferDetails()==null||product.getSubscriptionOfferDetails().isEmpty()){Toast.makeText(this,"Tawaran langganan tidak tersedia.",Toast.LENGTH_LONG).show();return;}
+            if(product.getSubscriptionOfferDetails()==null||product.getSubscriptionOfferDetails().isEmpty()){Toast.makeText(this,tx("Tawaran langganan tidak tersedia."),Toast.LENGTH_LONG).show();return;}
             detail.setOfferToken(product.getSubscriptionOfferDetails().get(0).getOfferToken());
         }
         BillingFlowParams params=BillingFlowParams.newBuilder().setProductDetailsParamsList(java.util.Collections.singletonList(detail.build())).build();
@@ -415,17 +417,17 @@ public class MainActivity extends Activity {
             catch(Exception ignored){}
             cloudAccessToken="";cloudRefreshToken="";cloudUserId="";
             if(cloudPrefs!=null)cloudPrefs.edit().clear().apply();
-            runOnUiThread(()->Toast.makeText(this,"Akaun Cloud telah dilog keluar. Fail setempat kekal pada telefon.",Toast.LENGTH_LONG).show());
+            runOnUiThread(()->Toast.makeText(this,tx("Akaun Cloud telah dilog keluar. Fail setempat kekal pada telefon."),Toast.LENGTH_LONG).show());
         }).start();
     }
     private void showCloudAccountDialog(){
         LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setPadding(dp(20),dp(8),dp(20),dp(4));
-        EditText email=new EditText(this);email.setSingleLine(true);email.setHint("E-mel");email.setInputType(33);panel.addView(email);
-        EditText password=new EditText(this);password.setSingleLine(true);password.setHint("Kata laluan");password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);panel.addView(password);
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Akaun All Convert Cloud").setMessage("Log masuk atau daftar akaun untuk menyimpan History Pro dalam cloud dan memulihkannya pada telefon lain.").setView(panel).setPositiveButton("Log Masuk",null).setNeutralButton("Daftar Akaun",null).setNegativeButton("History Peranti",null).create();
+        EditText email=new EditText(this);email.setSingleLine(true);email.setHint(tx("E-mel"));email.setInputType(33);panel.addView(email);
+        EditText password=new EditText(this);password.setSingleLine(true);password.setHint(tx("Kata laluan"));password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);panel.addView(password);
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle(tx("Akaun All Convert Cloud")).setMessage(tx("Log masuk atau daftar akaun untuk menyimpan History Pro dalam cloud dan memulihkannya pada telefon lain.")).setView(panel).setPositiveButton(tx("Log Masuk"),null).setNeutralButton(tx("Daftar Akaun"),null).setNegativeButton(tx("History Peranti"),null).create();
         dialog.setOnShowListener(v->{
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<8){Toast.makeText(this,"Masukkan e-mel dan kata laluan sekurang-kurangnya 8 aksara.",Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,false);});
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<6){Toast.makeText(this,"Masukkan e-mel dan kata laluan sekurang-kurangnya 6 aksara.",Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,true);});
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<8){Toast.makeText(this,tx("Masukkan e-mel dan kata laluan sekurang-kurangnya 8 aksara."),Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,false);});
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<6){Toast.makeText(this,tx("Masukkan e-mel dan kata laluan sekurang-kurangnya 6 aksara."),Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,true);});
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(x->{dialog.dismiss();showLocalHistoryDialog();});
         });dialog.show();
     }
@@ -437,8 +439,8 @@ public class MainActivity extends Activity {
                 String endpoint=register?"/auth/v1/signup":"/auth/v1/token?grant_type=password";
                 String response=cloudText("POST",endpoint,body.toString());
                 JSONObject session=new JSONObject(response);
-                if(session.has("access_token")){storeCloudSession(session);if(isPro)syncLocalHistoryToCloud();runOnUiThread(()->{Toast.makeText(this,"Akaun cloud berjaya disambungkan.",Toast.LENGTH_LONG).show();showHistoryDialog();});}
-                else runOnUiThread(()->Toast.makeText(this,"Pendaftaran diterima. Sahkan e-mel dahulu, kemudian log masuk.",Toast.LENGTH_LONG).show());
+                if(session.has("access_token")){storeCloudSession(session);if(isPro)syncLocalHistoryToCloud();runOnUiThread(()->{Toast.makeText(this,tx("Akaun cloud berjaya disambungkan."),Toast.LENGTH_LONG).show();showHistoryDialog();});}
+                else runOnUiThread(()->Toast.makeText(this,tx("Pendaftaran diterima. Sahkan e-mel dahulu, kemudian log masuk."),Toast.LENGTH_LONG).show());
             }catch(Exception e){runOnUiThread(()->Toast.makeText(this,"Sambungan akaun gagal: "+e.getMessage(),Toast.LENGTH_LONG).show());}
         }).start();
     }
@@ -485,20 +487,20 @@ public class MainActivity extends Activity {
         return total<=MAX_HISTORY_BYTES&&existing.length()-index<50;
     }
     private void loadCloudHistory(){
-        Toast.makeText(this,"Memuatkan History cloud…",Toast.LENGTH_SHORT).show();
+        Toast.makeText(this,tx("Memuatkan History cloud…"),Toast.LENGTH_SHORT).show();
         new Thread(()->{
             try{
                 String json=cloudText("GET","/rest/v1/allconvert_history?select=id,file_name,mime_type,object_path,file_size,created_at&order=created_at.desc&limit=50",null);
                 JSONArray records=new JSONArray(json);
                 runOnUiThread(()->showCloudHistoryList(records));
-            }catch(Exception e){runOnUiThread(()->new AlertDialog.Builder(this).setTitle("History Cloud tidak tersedia").setMessage("Sambungan cloud gagal. Anda masih boleh buka History yang tersimpan pada telefon.\n\n"+e.getMessage()).setPositiveButton("History Peranti",(d,w)->showLocalHistoryDialog()).setNegativeButton("Tutup",null).show());}
+            }catch(Exception e){runOnUiThread(()->new AlertDialog.Builder(this).setTitle(tx("History Cloud tidak tersedia")).setMessage(tx("Sambungan cloud gagal. Anda masih boleh buka History yang tersimpan pada telefon.\n\n")+e.getMessage()).setPositiveButton(tx("History Peranti"),(d,w)->showLocalHistoryDialog()).setNegativeButton(tx("Tutup"),null).show());}
         }).start();
     }
     private void showCloudHistoryList(JSONArray records){
-        if(records.length()==0){new AlertDialog.Builder(this).setTitle("History Pro • Cloud").setMessage("Belum ada fail dalam History cloud. Fail baharu akan disimpan selepas penukaran apabila akaun Pro dan sambungan internet tersedia.").setPositiveButton("Tutup",null).setNeutralButton("History Peranti",(d,w)->showLocalHistoryDialog()).show();return;}
+        if(records.length()==0){new AlertDialog.Builder(this).setTitle(tx("History Pro • Cloud")).setMessage(tx("Belum ada fail dalam History cloud. Fail baharu akan disimpan selepas penukaran apabila akaun Pro dan sambungan internet tersedia.")).setPositiveButton(tx("Tutup"),null).setNeutralButton(tx("History Peranti"),(d,w)->showLocalHistoryDialog()).show();return;}
         String[] labels=new String[records.length()];
         for(int i=0;i<records.length();i++){JSONObject item=records.optJSONObject(i);String stamp=item==null?"":item.optString("created_at","");if(stamp.length()>16)stamp=stamp.substring(0,16).replace('T',' ');labels[i]=(item==null?"Fail":item.optString("file_name","Fail"))+"  •  "+stamp;}
-        new AlertDialog.Builder(this).setTitle("History Pro • Cloud").setItems(labels,(d,which)->showCloudHistoryItem(records.optJSONObject(which))).setNegativeButton("Tutup",null).setNeutralButton("History Peranti",(d,w)->showLocalHistoryDialog()).show();
+        new AlertDialog.Builder(this).setTitle(tx("History Pro • Cloud")).setItems(labels,(d,which)->showCloudHistoryItem(records.optJSONObject(which))).setNegativeButton(tx("Tutup"),null).setNeutralButton(tx("History Peranti"),(d,w)->showLocalHistoryDialog()).show();
     }
     private void showCloudHistoryItem(JSONObject item){
         if(item==null)return;
@@ -507,21 +509,21 @@ public class MainActivity extends Activity {
             String id=item.optString("id",""),path=item.optString("object_path",""),name=item.optString("file_name","converted_file"),type=item.optString("mime_type","application/octet-stream");
             new Thread(()->{
                 try{
-                    if(which==2){cloudRequest("DELETE","/storage/v1/object/allconvert-history/"+encodeObjectPath(path),null,null);cloudText("DELETE","/rest/v1/allconvert_history?id=eq."+encodePath(id),null);runOnUiThread(()->{Toast.makeText(this,"Rekod cloud dipadam.",Toast.LENGTH_SHORT).show();loadCloudHistory();});}
+                    if(which==2){cloudRequest("DELETE","/storage/v1/object/allconvert-history/"+encodeObjectPath(path),null,null);cloudText("DELETE","/rest/v1/allconvert_history?id=eq."+encodePath(id),null);runOnUiThread(()->{Toast.makeText(this,tx("Rekod cloud dipadam."),Toast.LENGTH_SHORT).show();loadCloudHistory();});}
                     else{
                         byte[] bytes=cloudRequest("GET","/storage/v1/object/authenticated/allconvert-history/"+encodeObjectPath(path),null,null);
                         runOnUiThread(()->{if(which==0)saveDownload(name,type,bytes);else shareOrOpen(name,type,bytes);});
                     }
                 }catch(Exception e){runOnUiThread(()->Toast.makeText(this,"Operasi History gagal: "+e.getMessage(),Toast.LENGTH_LONG).show());}
             }).start();
-        }).setNegativeButton("Kembali",null).show();
+        }).setNegativeButton(tx("Kembali"),null).show();
     }
     private void showLocalHistoryDialog(){
         JSONArray records=readHistory();
-        if(records.length()==0){new AlertDialog.Builder(this).setTitle("History Peranti").setMessage("Tiada rekod setempat.").setPositiveButton("Tutup",null).show();return;}
+        if(records.length()==0){new AlertDialog.Builder(this).setTitle(tx("History Peranti")).setMessage(tx("Tiada rekod setempat.")).setPositiveButton(tx("Tutup"),null).show();return;}
         String[] labels=new String[records.length()];
         for(int i=0;i<records.length();i++){JSONObject item=records.optJSONObject(i);labels[i]=(item==null?"Fail":item.optString("name","Fail"));}
-        new AlertDialog.Builder(this).setTitle("History Peranti").setItems(labels,(d,w)->showHistoryItem(w)).setNegativeButton("Tutup",null).show();
+        new AlertDialog.Builder(this).setTitle(tx("History Peranti")).setItems(labels,(d,w)->showHistoryItem(w)).setNegativeButton(tx("Tutup"),null).show();
     }
 
     private void showHistoryDialog(){
@@ -537,11 +539,11 @@ public class MainActivity extends Activity {
             if(choice==3){file.delete();JSONArray kept=new JSONArray();for(int i=0;i<records.length();i++)if(i!=index)kept.put(records.optJSONObject(i));getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,kept.toString()).apply();showLocalHistoryDialog();return;}
             try{
                 byte[] bytes=readFileBytes(file);String name=item.optString("name","converted_file"),type=item.optString("mime","application/octet-stream");
-                if(choice==0)new AlertDialog.Builder(this).setTitle("Maklumat fail").setMessage(name+"\n"+type+"\n"+android.text.format.Formatter.formatShortFileSize(this,bytes.length)).setPositiveButton("Tutup",null).show();
+                if(choice==0)new AlertDialog.Builder(this).setTitle(tx("Maklumat fail")).setMessage(name+"\n"+type+"\n"+android.text.format.Formatter.formatShortFileSize(this,bytes.length)).setPositiveButton(tx("Tutup"),null).show();
                 else if(choice==1)saveDownload(name,type,bytes);
                 else shareOrOpen(name,type,bytes);
-            }catch(Exception e){Toast.makeText(this,"Fail History tidak dapat dibaca.",Toast.LENGTH_LONG).show();}
-        }).setNegativeButton("Kembali",null).show();
+            }catch(Exception e){Toast.makeText(this,tx("Fail History tidak dapat dibaca."),Toast.LENGTH_LONG).show();}
+        }).setNegativeButton(tx("Kembali"),null).show();
     }
     private byte[] readFileBytes(File file)throws Exception{try(InputStream in=new java.io.FileInputStream(file);ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))>0)out.write(buffer,0,n);return out.toByteArray();}}
 
@@ -574,15 +576,16 @@ public class MainActivity extends Activity {
         final String[] labels=isPro
             ? new String[]{"Mula / Penukar Fail","Pengumuman & Promosi","Pelan All Convert Pro","History Pro","Tetapan & Maklumat"}
             : new String[]{"Mula / Penukar Fail","Pengumuman & Promosi","Pelan All Convert Pro","History & Muat Turun (Pro)","Tetapan & Maklumat"};
+        for(int i=0;i<labels.length;i++)labels[i]=tx(labels[i]);
         new AlertDialog.Builder(this)
-            .setTitle("Menu All Convert")
+            .setTitle(tx("Menu All Convert"))
             .setItems(labels,(dialog,which)->{
                 if(which==0){webView.evaluateJavascript("window.scrollTo({top:0,behavior:'smooth'})",null);}
                 else if(which==1){webView.evaluateJavascript("document.getElementById('promoAnnouncement')?.scrollIntoView({behavior:'smooth',block:'center'})",null);}
                 else if(which==2)showProPlansDialog();
                 else if(which==3)showHistoryDialog();
                 else showSettingsDialog();
-            }).setNegativeButton("Tutup",null).show();
+            }).setNegativeButton(tx("Tutup"),null).show();
     }
 
     private void showSettingsDialog(){
@@ -596,7 +599,7 @@ public class MainActivity extends Activity {
         header.setBackground(proBg(Color.rgb(43,34,105),Color.rgb(7,65,86)));
         header.setElevation(dp(5));
         TextView heading=new TextView(this);
-        heading.setText("Tetapan All Convert");
+        heading.setText(tx("Tetapan All Convert"));
         heading.setTextSize(21);
         heading.setTypeface(null,android.graphics.Typeface.BOLD);
         heading.setTextColor(Color.WHITE);
@@ -604,7 +607,7 @@ public class MainActivity extends Activity {
         heading.setPadding(0,0,0,dp(5));
         header.addView(heading,new LinearLayout.LayoutParams(-1,-2));
         TextView version=new TextView(this);
-        version.setText("Urus akaun, pengalaman aplikasi dan pilihan privasi anda");
+        version.setText(tx("Urus akaun, pengalaman aplikasi dan pilihan privasi anda"));
         version.setTextSize(12);
         version.setTextColor(Color.rgb(216,229,250));
         header.addView(version,new LinearLayout.LayoutParams(-1,-2));
@@ -612,11 +615,11 @@ public class MainActivity extends Activity {
         headerLp.bottomMargin=dp(15);
         panel.addView(header,headerLp);
         ScrollView settingsScroll=new ScrollView(this);settingsScroll.setFillViewport(true);settingsScroll.setBackgroundColor(Color.rgb(7,11,24));settingsScroll.addView(panel,new ScrollView.LayoutParams(-1,-2));
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Tetapan").setView(settingsScroll).setNegativeButton("Tutup",null).create();
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle(tx("Tetapan")).setView(settingsScroll).setNegativeButton(tx("Tutup"),null).create();
         addInfoRow(panel,"Langganan Pro","Buka ciri premium dan History",()->{dialog.dismiss();showProPlansDialog();});
         if(!isPro)addInfoRow(panel,"Tonton Iklan Rewarded","Tonton video untuk langkau iklan sela seterusnya",()->{dialog.dismiss();showRewardedIfReady();});
-        addInfoRow(panel,"Pulihkan Pembelian","Semak semula langganan atau pembelian terdahulu",()->{dialog.dismiss();queryProPurchases();Toast.makeText(this,"Sedang menyemak pembelian Google Play…",Toast.LENGTH_SHORT).show();});
-        if(isPro||!cloudAccessToken.isEmpty())addInfoRow(panel,"Akaun Cloud",cloudAccessToken.isEmpty()?"Sambung akaun untuk History cloud":"Akaun cloud disambungkan",()->{dialog.dismiss();if(cloudAccessToken.isEmpty())showCloudAccountDialog();else new AlertDialog.Builder(this).setTitle("Akaun Cloud").setMessage("Akaun All Convert Cloud sedang disambungkan.").setPositiveButton("Log keluar",(d,w)->logoutCloud()).setNegativeButton("Kembali",null).show();});
+        addInfoRow(panel,"Pulihkan Pembelian","Semak semula langganan atau pembelian terdahulu",()->{dialog.dismiss();queryProPurchases();Toast.makeText(this,tx("Sedang menyemak pembelian Google Play…"),Toast.LENGTH_SHORT).show();});
+        if(isPro||!cloudAccessToken.isEmpty())addInfoRow(panel,"Akaun Cloud",cloudAccessToken.isEmpty()?"Sambung akaun untuk History cloud":"Akaun cloud disambungkan",()->{dialog.dismiss();if(cloudAccessToken.isEmpty())showCloudAccountDialog();else new AlertDialog.Builder(this).setTitle(tx("Akaun Cloud")).setMessage(tx("Akaun All Convert Cloud sedang disambungkan.")).setPositiveButton(tx("Log keluar"),(d,w)->logoutCloud()).setNegativeButton(tx("Kembali"),null).show();});
         addInfoRow(panel,"Dasar Privasi","Cara maklumat dan data dikendalikan",()->{dialog.dismiss();showLegalPage("privacy_policy.html","Dasar Privasi");});
         addInfoRow(panel,"Terma Penggunaan","Syarat dan peraturan penggunaan aplikasi",()->{dialog.dismiss();showLegalPage("terms.html","Terma Penggunaan");});
         if(consentInformation!=null && consentInformation.getPrivacyOptionsRequirementStatus()==ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED){
@@ -628,6 +631,7 @@ public class MainActivity extends Activity {
     }
 
     private void addInfoRow(LinearLayout parent,String title,String subtitle,Runnable action){
+        title=tx(title);subtitle=tx(subtitle);
         TextView row=new TextView(this);
         String rowText=title+"\n"+subtitle+"     ›";
         android.text.SpannableString styled=new android.text.SpannableString(rowText);
@@ -659,7 +663,7 @@ public class MainActivity extends Activity {
     private void showPrivacyOptions(){
         if(consentInformation==null)return;
         UserMessagingPlatform.showPrivacyOptionsForm(this,error->{
-            if(error!=null)Toast.makeText(this,"Tetapan privasi tidak dapat dibuka. Cuba lagi.",Toast.LENGTH_SHORT).show();
+            if(error!=null)Toast.makeText(this,tx("Tetapan privasi tidak dapat dibuka. Cuba lagi."),Toast.LENGTH_SHORT).show();
             updatePrivacyOptionsEntry();
         });
     }
@@ -683,9 +687,9 @@ public class MainActivity extends Activity {
         });
         legalView.loadUrl("file:///android_asset/"+assetName);
         AlertDialog dialog=new AlertDialog.Builder(this)
-            .setTitle(title)
+            .setTitle(tx(title))
             .setView(legalView)
-            .setPositiveButton("Tutup",(d,w)->{})
+            .setPositiveButton(tx("Tutup"),(d,w)->{})
             .create();
         dialog.setOnDismissListener(d->legalView.destroy());
         dialog.show();
@@ -693,6 +697,7 @@ public class MainActivity extends Activity {
     }
 
     private class AndroidBridge{
+        @JavascriptInterface public void setLanguagePack(String language,String json){try{JSONObject pack=new JSONObject(json==null?"{}":json);JSONObject local=pack.optJSONObject("translations"),english=pack.optJSONObject("english");Map<String,String> lm=new HashMap<>(),em=new HashMap<>();if(local!=null){java.util.Iterator<String> it=local.keys();while(it.hasNext()){String k=it.next();lm.put(k,local.optString(k,k));}}if(english!=null){java.util.Iterator<String> it=english.keys();while(it.hasNext()){String k=it.next();em.put(k,english.optString(k,k));}}appLanguage=language==null?"en":language;nativeTranslations=lm;englishTranslations=em;getSharedPreferences("all_convert_language",MODE_PRIVATE).edit().putString("language",appLanguage).apply();}catch(Exception ignored){}}
         @JavascriptInterface public void recordConverted(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);if(data.length>0)recordHistory(name,type,data);}
         private boolean allowFreeResultAction(){
             if(isPro)return true;
@@ -735,19 +740,19 @@ public class MainActivity extends Activity {
     private void showHtmlPreview(String n,String m,byte[] data){
         if(data==null||data.length==0)return;
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(dp(10),dp(4),dp(10),dp(8));
-        TextView info=new TextView(this); info.setText("Preview • "+n); info.setTextSize(14); info.setTextColor(Color.rgb(20,28,45)); info.setTypeface(null,android.graphics.Typeface.BOLD); info.setPadding(dp(4),dp(4),dp(4),dp(8));
+        TextView info=new TextView(this); info.setText(tx("Preview • ")+n); info.setTextSize(14); info.setTextColor(Color.rgb(20,28,45)); info.setTypeface(null,android.graphics.Typeface.BOLD); info.setPadding(dp(4),dp(4),dp(4),dp(8));
         root.addView(info,new LinearLayout.LayoutParams(-1,dp(38)));
         WebView preview=new WebView(this); preview.setBackgroundColor(Color.WHITE); WebSettings ps=preview.getSettings(); ps.setJavaScriptEnabled(true); ps.setDomStorageEnabled(true); ps.setAllowFileAccess(false); ps.setAllowContentAccess(false); ps.setBuiltInZoomControls(false); ps.setDisplayZoomControls(false);
         String html=prepareHtmlPreview(data);
         preview.loadDataWithBaseURL("https://allconvert.local/",html,"text/html","UTF-8",null);
         root.addView(preview,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL); actions.setGravity(Gravity.CENTER); actions.setPadding(0,dp(8),0,0);
-        Button download=new Button(this); download.setText("Download"); download.setAllCaps(false);
-        Button save=new Button(this); save.setText("Save As"); save.setAllCaps(false);
-        Button share=new Button(this); share.setText("Share"); share.setAllCaps(false);
+        Button download=new Button(this); download.setText(tx("Download")); download.setAllCaps(false);
+        Button save=new Button(this); save.setText(tx("Save As")); save.setAllCaps(false);
+        Button share=new Button(this); share.setText(tx("Share")); share.setAllCaps(false);
         actions.addView(download,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(save,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(share,new LinearLayout.LayoutParams(0,dp(44),1));
         root.addView(actions,new LinearLayout.LayoutParams(-1,dp(52)));
-        final AlertDialog dialog=new AlertDialog.Builder(this).setTitle("HTML Preview").setView(root).setNegativeButton("Tutup",null).create();
+        final AlertDialog dialog=new AlertDialog.Builder(this).setTitle(tx("HTML Preview")).setView(root).setNegativeButton(tx("Tutup"),null).create();
         download.setOnClickListener(v->{dialog.dismiss();saveDownload(n,m,data);});
         save.setOnClickListener(v->{dialog.dismiss();pendingBytes=data;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(m);i.putExtra(Intent.EXTRA_TITLE,n);startActivityForResult(i,SAVE_DOCUMENT_REQUEST);});
         share.setOnClickListener(v->shareOrOpen(n,m,data));
@@ -779,7 +784,7 @@ public class MainActivity extends Activity {
             Uri u=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,v);if(u==null)throw new Exception("Tidak dapat menyediakan fail Download.");
             try(OutputStream o=getContentResolver().openOutputStream(u)){if(o==null)throw new Exception("Lokasi Download tidak boleh dibuka.");o.write(data);o.flush();}
             runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeDone&&window.__allConvertNativeDone('download')",null);});
-        }catch(Exception e){runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('download')",null);Toast.makeText(this,"Download gagal. Semak ruang storan dan cuba lagi.",Toast.LENGTH_LONG).show();});}}).start();
+        }catch(Exception e){runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('download')",null);Toast.makeText(this,tx("Download gagal. Semak ruang storan dan cuba lagi."),Toast.LENGTH_LONG).show();});}}).start();
     }
     private void shareOrOpen(String n,String m,byte[] data){
         new Thread(()->{try{
@@ -788,7 +793,7 @@ public class MainActivity extends Activity {
             Uri u=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f);
             Intent i=new Intent(Intent.ACTION_SEND);i.setType(m);i.putExtra(Intent.EXTRA_STREAM,u);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             runOnUiThread(()->{try{startActivity(Intent.createChooser(i,"Share fail"));}catch(Exception e){if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('share')",null);}});
-        }catch(Exception e){runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('share')",null);Toast.makeText(this,"Fail tidak dapat dikongsi.",Toast.LENGTH_LONG).show();});}}).start();
+        }catch(Exception e){runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('share')",null);Toast.makeText(this,tx("Fail tidak dapat dikongsi."),Toast.LENGTH_LONG).show();});}}).start();
     }
     private void openFile(String n,String m,byte[] data){
         new Thread(()->{try{
@@ -797,7 +802,7 @@ public class MainActivity extends Activity {
             Uri u=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f);
             Intent i=new Intent(Intent.ACTION_VIEW);i.setDataAndType(u,m);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             runOnUiThread(()->{try{startActivity(i);}catch(Exception e){shareOrOpen(n,m,data);}});
-        }catch(Exception e){runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('openWith')",null);Toast.makeText(this,"Tiada aplikasi yang boleh membuka fail ini.",Toast.LENGTH_LONG).show();});}}).start();
+        }catch(Exception e){runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('openWith')",null);Toast.makeText(this,tx("Tiada aplikasi yang boleh membuka fail ini."),Toast.LENGTH_LONG).show();});}}).start();
     }
     private void handleIncoming(Intent x){
         if(x==null)return;String a=x.getAction();Uri u=x.getData();
@@ -861,7 +866,7 @@ public class MainActivity extends Activity {
     });}
     private void showRewardedIfReady(){
         if(isPro)return;
-        if(rewardedAd==null){loadRewarded();Toast.makeText(this,"Rewarded ad belum tersedia.",Toast.LENGTH_SHORT).show();return;}
+        if(rewardedAd==null){loadRewarded();Toast.makeText(this,tx("Rewarded ad belum tersedia."),Toast.LENGTH_SHORT).show();return;}
         RewardedAd ad=rewardedAd; rewardedAd=null; if(rewardButton!=null)rewardButton.setVisibility(View.GONE);
         ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){loadRewarded();}});
         ad.show(this,rewardItem->{skipNextInterstitial=true;webView.evaluateJavascript("window.__allConvertRewarded&&window.__allConvertRewarded("+rewardItem.getAmount()+")",null);});
@@ -895,7 +900,7 @@ public class MainActivity extends Activity {
         nv.addView(row);
         nv.setMediaView(media); nv.setHeadlineView(headline); nv.setBodyView(body); nv.setCallToActionView(cta); nv.setNativeAd(ad);
         TextView hide=new TextView(this);
-        hide.setText("Sembunyikan iklan"); hide.setTextSize(11); hide.setTypeface(null,android.graphics.Typeface.BOLD);
+        hide.setText(tx("Sembunyikan iklan")); hide.setTextSize(11); hide.setTypeface(null,android.graphics.Typeface.BOLD);
         hide.setTextColor(Color.rgb(35,91,180)); hide.setGravity(Gravity.CENTER);
         hide.setPadding(dp(10),0,dp(10),0); hide.setMinHeight(dp(24));
         android.graphics.drawable.GradientDrawable pill=new android.graphics.drawable.GradientDrawable();
@@ -934,7 +939,7 @@ public class MainActivity extends Activity {
     @Override protected void onActivityResult(int r,int c,Intent d){
         super.onActivityResult(r,c,d);
         if(r==FILE_CHOOSER_REQUEST){if(filePathCallback==null)return;Uri[] z=null;if(c==RESULT_OK&&d!=null){if(d.getClipData()!=null){int n=d.getClipData().getItemCount();z=new Uri[n];for(int i=0;i<n;i++)z[i]=d.getClipData().getItemAt(i).getUri();}else if(d.getData()!=null)z=new Uri[]{d.getData()};}filePathCallback.onReceiveValue(z);filePathCallback=null;}
-        else if(r==SAVE_DOCUMENT_REQUEST){if(c==RESULT_OK&&d!=null&&d.getData()!=null&&pendingBytes!=null){byte[] bytes=pendingBytes;Uri target=d.getData();pendingBytes=null;new Thread(()->{try(OutputStream o=getContentResolver().openOutputStream(target)){if(o==null)throw new Exception("Lokasi simpan tidak tersedia.");o.write(bytes);o.flush();runOnUiThread(()->Toast.makeText(this,"Fail berjaya disimpan.",Toast.LENGTH_SHORT).show());}catch(Exception e){runOnUiThread(()->Toast.makeText(this,"Gagal menyimpan fail. Cuba lokasi lain.",Toast.LENGTH_LONG).show());}}).start();}else pendingBytes=null;}
+        else if(r==SAVE_DOCUMENT_REQUEST){if(c==RESULT_OK&&d!=null&&d.getData()!=null&&pendingBytes!=null){byte[] bytes=pendingBytes;Uri target=d.getData();pendingBytes=null;new Thread(()->{try(OutputStream o=getContentResolver().openOutputStream(target)){if(o==null)throw new Exception("Lokasi simpan tidak tersedia.");o.write(bytes);o.flush();runOnUiThread(()->Toast.makeText(this,tx("Fail berjaya disimpan."),Toast.LENGTH_SHORT).show());}catch(Exception e){runOnUiThread(()->Toast.makeText(this,tx("Gagal menyimpan fail. Cuba lokasi lain."),Toast.LENGTH_LONG).show());}}).start();}else pendingBytes=null;}
     }
     @Override protected void onStart(){super.onStart();if(billingClientReady())queryProPurchases();if(firstSession){firstSession=false;return;}new android.os.Handler().postDelayed(()->showAppOpenIfReady(),800);}
     @Override protected void onNewIntent(Intent i){super.onNewIntent(i);setIntent(i);handleIncoming(i);}

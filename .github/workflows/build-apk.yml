@@ -111,14 +111,15 @@ jobs:
           body_match = __import__('re').search(r'<body\b[^>]*>', h, flags=__import__('re').I)
           if not body_match:
               raise SystemExit("FAIL: HTML body insertion point not found")
-          promo_card = '<section id="promoAnnouncement" class="ac-promo" style="display:none"><div class="ac-promo-top"><div class="ac-promo-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5 10 18l10-12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="ac-promo-heading"><span id="promoEyebrow" class="ac-promo-kicker">PENGUMUMAN RASMI</span><span class="ac-promo-brand">ALL CONVERT PRO</span></div><span class="ac-promo-live">TAWARAN</span></div><div class="ac-promo-content"><h2 id="promoTitle">Tawaran khas All Convert Pro</h2><p id="promoMessage"></p><div class="ac-promo-footer"><span id="promoDates" class="ac-promo-dates"></span><button type="button" id="promoPlansBtn" class="ac-promo-cta">Lihat pelan Pro <span aria-hidden="true">›</span></button></div></div></section>\n'
+          promo_card = '<section id="promoAnnouncement" class="ac-promo" style="display:none"><div class="ac-promo-top"><div class="ac-promo-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.2 6.1L20 10l-5.8 2.1L12 18l-2.2-5.9L4 10l5.8-1.9L12 2Zm7 12 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1L19 14Z" fill="currentColor"/></svg></div><div class="ac-promo-heading"><span id="promoEyebrow" class="ac-promo-kicker">PENGUMUMAN RASMI</span><span class="ac-promo-brand">ALL CONVERT PRO</span></div><span class="ac-promo-live">TAWARAN</span></div><div class="ac-promo-content"><h2 id="promoTitle">Tawaran khas All Convert Pro</h2><p id="promoMessage"></p><div class="ac-promo-footer"><span id="promoDates" class="ac-promo-dates"></span><button type="button" id="promoPlansBtn" class="ac-promo-cta">Lihat pelan Pro <span aria-hidden="true">›</span></button></div></div></section>\n'
 
-          insert_at = body_match.end()
           promo_css = r"""<style>
           .ac-promo{box-sizing:border-box;width:calc(100% - 28px);max-width:760px;margin:16px auto 20px;border:1px solid #293654;border-radius:25px;overflow:hidden;background:linear-gradient(145deg,#10183c 0%,#0c1221 72%,#063c52 140%);box-shadow:0 20px 55px #0006;color:#fff;font-family:inherit}
           .ac-promo-top{display:flex;align-items:center;gap:12px;padding:15px 17px;background:linear-gradient(110deg,#171f3b 0%,#10183c 58%,#121b2d 100%);border-bottom:1px solid #293654}
           .ac-promo-mark{width:42px;height:42px;flex:0 0 42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#7768ff,#22cfee);color:#fff;box-shadow:0 6px 18px #556dff55}
-          .ac-promo-mark svg{width:23px;height:23px}
+          .ac-promo-mark svg{width:25px;height:25px;filter:drop-shadow(0 0 7px #22cfee88)}
+          .ac-promo-content{position:relative}
+          .ac-promo-content:after{content:'✦  ✧  ✦';position:absolute;right:16px;top:10px;color:#7768ff88;font-size:19px;letter-spacing:8px;pointer-events:none}
           .ac-promo-heading{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
           .ac-promo-kicker{font-size:10px;font-weight:900;letter-spacing:.13em;color:#22cfee}
           .ac-promo-brand{font-size:12px;font-weight:850;letter-spacing:.07em;color:#fff}
@@ -134,6 +135,12 @@ jobs:
           </style>"""
           if '.ac-promo{' not in h:
               h = h.replace('</head>', promo_css + '\n</head>', 1)
+          # Recompute the body insertion point after adding head CSS; otherwise the
+          # previous byte offset can land inside the style block and corrupt the page.
+          body_match = __import__('re').search(r'<body\\b[^>]*>', h, flags=__import__('re').I)
+          if not body_match:
+              raise SystemExit("FAIL: HTML body insertion point not found after promo CSS")
+          insert_at = body_match.end()
           h = h[:insert_at] + promo_card + promo_script + '\n' + h[insert_at:]
           if h.count("const endpoint='https://hckvehpkzwyerkwpdvlz.supabase.co/functions/v1/allconvert-promotions';") != 1:
               raise SystemExit("FAIL: promotion script must exist exactly once in the main page")

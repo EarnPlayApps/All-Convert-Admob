@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [ main ]
   push:
-    branches: [ main ]
+    branches: [ main, fix/app-open-cooldown-5min ]
 
 permissions:
   contents: read
@@ -40,6 +40,7 @@ jobs:
           grep -q "allconvert_pro_monthly" app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q "recordHistory" app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q "recordConverted" app/src/main/java/com/allconvert/app/MainActivity.java
+          grep -q "AndroidBridge.recordConverted" app/src/main/assets/index.html
           grep -q "showHistoryDialog" app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q "allconvert-history" app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q "SUPABASE_PUBLISHABLE_KEY" app/src/main/java/com/allconvert/app/MainActivity.java

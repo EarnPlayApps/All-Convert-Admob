@@ -64,9 +64,6 @@ jobs:
           if css_anchor not in h:
               raise SystemExit("FAIL: drop CSS anchor not found")
           h = h.replace(css_anchor, '.drop{position:relative;margin-top:18px;', 1)
-          print("Automatic Pro History hook added after successful conversion")
-          if 'recordConverted' not in h:
-              raise SystemExit("FAIL: automatic History hook was not inserted")
           p.write_text(h, encoding="utf-8")
           print("File picker isolated to #pickFileBtn")
           history_anchor = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;'

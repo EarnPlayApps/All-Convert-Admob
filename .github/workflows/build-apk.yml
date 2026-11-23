@@ -233,7 +233,44 @@ jobs:
               raise SystemExit("FAIL: language selector script incomplete")
           if 'src="i18n.js"' not in h:
               raise SystemExit("FAIL: language script was not attached")
-          print("International language support attached to All Convert HTML.")
+          nav_css = """<style>
+          body{padding-bottom:92px!important}
+          .ac-bottom-nav{position:fixed;z-index:9990;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:8px 9px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid #293654;background:linear-gradient(180deg,rgba(16,24,60,.97),rgba(7,11,24,.99));box-shadow:0 -12px 32px #0008;backdrop-filter:blur(18px)}
+          .ac-bottom-nav button{display:flex;min-width:0;min-height:52px;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:1px solid transparent;border-radius:13px;background:transparent;color:#9aa7c1;font:700 10px system-ui;cursor:pointer}
+          .ac-bottom-nav button svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+          .ac-bottom-nav button.active{border-color:#3b4c78;background:linear-gradient(135deg,#242052,#102b40);color:#22cfee;box-shadow:inset 0 0 18px #7768ff22}
+          @media(max-width:360px){.ac-bottom-nav{padding-left:5px;padding-right:5px}.ac-bottom-nav button{font-size:9px}}
+          </style>"""
+          if "ac-bottom-nav" not in h:
+              if "</head>" not in h.lower():
+                  raise SystemExit("FAIL: HTML head closing tag missing for bottom navigation")
+              h = h.replace("</head>", nav_css + "\\n</head>", 1)
+              nav = """<nav class="ac-bottom-nav" aria-label="Main navigation">
+              <button type="button" data-tab="home" class="active" aria-current="page"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Laman Utama</span></button>
+              <button type="button" data-tab="convert"><svg viewBox="0 0 24 24"><path d="M4 7h13m-4-4 4 4-4 4M20 17H7m4-4-4 4 4 4"/></svg><span>Tukar</span></button>
+              <button type="button" data-tab="pro"><svg viewBox="0 0 24 24"><path d="m12 3 2.3 5.1 5.7.7-4.2 4 1 5.7-4.8-2.8-4.8 2.8 1-5.7-4.2-4 5.7-.7z"/></svg><span>Pro</span></button>
+              <button type="button" data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.8 1.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.1h-2.6v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-1.8-1.8.1-.1A1.7 1.7 0 0 0 8 15a1.7 1.7 0 0 0-1.5-1H6.4v-2.6h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 1.8-1.8.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.1H15v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 1.8 1.8-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1V14h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Tetapan</span></button>
+              </nav>
+              <script>
+              (function(){
+                const nav=document.querySelector('.ac-bottom-nav');if(!nav||nav.dataset.ready)return;nav.dataset.ready='1';
+                nav.addEventListener('click',function(e){
+                  const b=e.target.closest('button[data-tab]');if(!b)return;
+                  nav.querySelectorAll('button').forEach(x=>{x.classList.toggle('active',x===b);if(x===b)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});
+                  const tab=b.dataset.tab;
+                  if(tab==='home'){window.scrollTo({top:0,behavior:'smooth'});if(window.AndroidBridge&&AndroidBridge.setAdPage)AndroidBridge.setAdPage('home')}
+                  else if(tab==='convert'){const target=document.querySelector('.hero')||document.querySelector('.controls');target&&target.scrollIntoView({behavior:'smooth',block:'start'});if(window.AndroidBridge&&AndroidBridge.setAdPage)AndroidBridge.setAdPage('convert')}
+                  else if(tab==='pro'){if(window.AndroidBridge&&AndroidBridge.openPro)AndroidBridge.openPro()}
+                  else if(tab==='settings'){if(window.AndroidBridge&&AndroidBridge.openSettings)AndroidBridge.openSettings()}
+                });
+              })();
+              </script>"""
+              pos = h.lower().rfind("</body>")
+              if pos < 0:
+                  raise SystemExit("FAIL: HTML body closing tag missing for bottom navigation")
+              h = h[:pos] + nav + "\\n" + h[pos:]
+          print("International language support and original four-tab navigation attached.")
+          p.write_text(h, encoding="utf-8")
           PY
           node --check app/src/main/assets/i18n.js
           grep -q 'src="i18n.js"' app/src/main/assets/index.html

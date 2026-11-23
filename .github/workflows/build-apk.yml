@@ -69,7 +69,7 @@ jobs:
           history_anchor = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;'
           if history_anchor not in h:
               raise SystemExit("FAIL: successful conversion History anchor not found")
-          history_hook = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;if(window.AndroidBridge?.recordConverted){if(b.size<=52428800){try{const reader=new FileReader();const encoded=await new Promise((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(reader.error);reader.readAsDataURL(b)});window.AndroidBridge.recordConverted(resultName,b.type||"application/octet-stream",encoded);window.__allConvertHistoryLarge=false}catch(historyError){console.warn("History local save failed",historyError)}}else{window.__allConvertHistoryLarge=true}}'
+          history_hook = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;if(window.AndroidBridge?.conversionCompleted)window.AndroidBridge.conversionCompleted();if(window.AndroidBridge?.recordConverted){if(b.size<=52428800){try{const reader=new FileReader();const encoded=await new Promise((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(reader.error);reader.readAsDataURL(b)});window.AndroidBridge.recordConverted(resultName,b.type||"application/octet-stream",encoded);window.__allConvertHistoryLarge=false}catch(historyError){console.warn("History local save failed",historyError)}}else{window.__allConvertHistoryLarge=true}}'
           h = h.replace(history_anchor, history_hook, 1)
           toast_anchor = 'showToast("✅ Conversion berjaya!",resultName+" sudah siap.");'
           if toast_anchor not in h:

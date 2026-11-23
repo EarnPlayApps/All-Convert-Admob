@@ -432,7 +432,7 @@ public class MainActivity extends Activity {
         });dialog.show();
     }
     private void authenticateCloud(String email,String password,boolean register){
-        Toast.makeText(this,register?"Mendaftar akaun…":"Log masuk…",Toast.LENGTH_SHORT).show();
+        Toast.makeText(this,tx(register?"Mendaftar akaun…":"Log masuk…"),Toast.LENGTH_SHORT).show();
         new Thread(()->{
             try{
                 JSONObject body=new JSONObject();body.put("email",email);body.put("password",password);
@@ -504,7 +504,7 @@ public class MainActivity extends Activity {
     }
     private void showCloudHistoryItem(JSONObject item){
         if(item==null)return;
-        String[] actions={"Download semula","Share","Padam daripada Cloud"};
+        String[] actions={"Download semula","Share","Padam daripada Cloud"};for(int i=0;i<actions.length;i++)actions[i]=tx(actions[i]);
         new AlertDialog.Builder(this).setTitle(item.optString("file_name","Fail")).setItems(actions,(d,which)->{
             String id=item.optString("id",""),path=item.optString("object_path",""),name=item.optString("file_name","converted_file"),type=item.optString("mime_type","application/octet-stream");
             new Thread(()->{
@@ -533,7 +533,7 @@ public class MainActivity extends Activity {
     }
     private void showHistoryItem(int index){
         JSONArray records=readHistory();JSONObject item=records.optJSONObject(index);if(item==null)return;
-        String[] actions={"Maklumat fail","Download semula","Share","Padam daripada History"};
+        String[] actions={"Maklumat fail","Download semula","Share","Padam daripada History"};for(int i=0;i<actions.length;i++)actions[i]=tx(actions[i]);
         new AlertDialog.Builder(this).setTitle(item.optString("name","Fail")).setItems(actions,(dialog,choice)->{
             File file=new File(new File(getFilesDir(),"history"),item.optString("file",""));
             if(choice==3){file.delete();JSONArray kept=new JSONArray();for(int i=0;i<records.length();i++)if(i!=index)kept.put(records.optJSONObject(i));getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,kept.toString()).apply();showLocalHistoryDialog();return;}

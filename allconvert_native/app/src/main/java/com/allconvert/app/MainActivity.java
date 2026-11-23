@@ -885,26 +885,26 @@ public class MainActivity extends Activity {
         if(isPro||nativeContainer==null){ad.destroy();return;}
         nativeContainer.removeAllViews();
         LinearLayout wrap=new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL);
-        wrap.setPadding(dp(8),dp(6),dp(8),dp(5)); wrap.setBackgroundColor(Color.rgb(247,250,255));
+        wrap.setPadding(dp(10),dp(8),dp(10),dp(7)); wrap.setBackground(proBg(Color.rgb(16,24,60),Color.rgb(12,18,33)));
         NativeAdView nv=new NativeAdView(this);
         nv.setLayoutParams(new LinearLayout.LayoutParams(-1,dp(88)));
         LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(4),dp(3),dp(4),dp(3));
         com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(76),dp(76)));
         row.addView(media);
         LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(9),0,dp(4),0); text.setLayoutParams(new LinearLayout.LayoutParams(0,-1,1));
-        TextView headline=new TextView(this); headline.setTextSize(13); headline.setTextColor(Color.rgb(20,28,45)); headline.setMaxLines(2); headline.setTypeface(null,android.graphics.Typeface.BOLD);
-        TextView body=new TextView(this); body.setTextSize(10); body.setTextColor(Color.rgb(90,100,120)); body.setMaxLines(2); body.setPadding(0,dp(2),0,dp(2));
-        Button cta=new Button(this); cta.setTextSize(10); cta.setMinHeight(dp(28)); cta.setAllCaps(false); cta.setTextColor(Color.rgb(40,60,120));
+        TextView headline=new TextView(this); headline.setTextSize(13); headline.setTextColor(Color.WHITE); headline.setMaxLines(2); headline.setTypeface(null,android.graphics.Typeface.BOLD);
+        TextView body=new TextView(this); body.setTextSize(10); body.setTextColor(Color.rgb(184,198,226)); body.setMaxLines(2); body.setPadding(0,dp(2),0,dp(2));
+        Button cta=new Button(this); cta.setTextSize(10); cta.setMinHeight(dp(28)); cta.setAllCaps(false); cta.setTextColor(Color.WHITE); cta.setBackground(proBg(Color.rgb(119,104,255),Color.rgb(34,207,238)));
         text.addView(headline,new LinearLayout.LayoutParams(-1,0,1)); text.addView(body,new LinearLayout.LayoutParams(-1,0,1)); text.addView(cta,new LinearLayout.LayoutParams(-1,dp(28)));
         row.addView(text);
         nv.addView(row);
         nv.setMediaView(media); nv.setHeadlineView(headline); nv.setBodyView(body); nv.setCallToActionView(cta); nv.setNativeAd(ad);
         TextView hide=new TextView(this);
         hide.setText(tx("Sembunyikan iklan")); hide.setTextSize(11); hide.setTypeface(null,android.graphics.Typeface.BOLD);
-        hide.setTextColor(Color.rgb(35,91,180)); hide.setGravity(Gravity.CENTER);
+        hide.setTextColor(Color.rgb(34,207,238)); hide.setGravity(Gravity.CENTER);
         hide.setPadding(dp(10),0,dp(10),0); hide.setMinHeight(dp(24));
         android.graphics.drawable.GradientDrawable pill=new android.graphics.drawable.GradientDrawable();
-        pill.setColor(Color.rgb(232,241,255)); pill.setCornerRadius(dp(18)); pill.setStroke(dp(1),Color.rgb(205,222,248));
+        pill.setColor(Color.rgb(18,27,45)); pill.setCornerRadius(dp(18)); pill.setStroke(dp(1),Color.rgb(59,76,120));
         hide.setBackground(pill); hide.setContentDescription("Sembunyikan iklan native");
         wrap.addView(nv);
         LinearLayout.LayoutParams hideParams=new LinearLayout.LayoutParams(-2,dp(24));
@@ -914,8 +914,8 @@ public class MainActivity extends Activity {
         hide.setOnClickListener(v->{
             nativeHidden[0]=!nativeHidden[0];
             nv.setVisibility(nativeHidden[0]?View.GONE:View.VISIBLE);
-            hide.setText(nativeHidden[0]?"Tunjukkan iklan":"Sembunyikan iklan");
-            hide.setContentDescription(nativeHidden[0]?"Tunjukkan iklan native":"Sembunyikan iklan native");
+            hide.setText(tx(nativeHidden[0]?"Tunjukkan iklan":"Sembunyikan iklan"));
+            hide.setContentDescription(tx(nativeHidden[0]?"Tunjukkan iklan native":"Sembunyikan iklan native"));
         });
         nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }

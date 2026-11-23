@@ -746,6 +746,7 @@ public class MainActivity extends Activity {
         bannerContainer.addView(adView,new android.widget.FrameLayout.LayoutParams(-1,-2));
         adView.setAdListener(new AdListener(){
             @Override public void onAdLoaded(){
+                if(isPro){bannerContainer.removeAllViews();bannerContainer.setVisibility(View.GONE);return;}
                 bannerLoaded=true;
                 bannerContainer.getLayoutParams().height=android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
                 bannerContainer.requestLayout();
@@ -763,13 +764,13 @@ public class MainActivity extends Activity {
     }
 
     private void loadInterstitial(){if(isPro)return;InterstitialAd.load(this,INTERSTITIAL_ID,new AdRequest.Builder().build(),new InterstitialAdLoadCallback(){
-        @Override public void onAdLoaded(InterstitialAd ad){interstitialAd=ad;ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){interstitialAd=null;loadInterstitial();}});}
+        @Override public void onAdLoaded(InterstitialAd ad){if(isPro){interstitialAd=null;return;}interstitialAd=ad;ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){interstitialAd=null;loadInterstitial();}});}
         @Override public void onAdFailedToLoad(LoadAdError e){interstitialAd=null;}
     });}
     private void showInterstitialIfReady(){if(isPro)return;long now=System.currentTimeMillis();if(now-lastInterstitialShown<180000L)return;if(skipNextInterstitial){skipNextInterstitial=false;webView.evaluateJavascript("window.__allConvertRewardedUsed&&window.__allConvertRewardedUsed()",null);loadInterstitial();return;}if(interstitialAd!=null && !appOpenShowing){lastInterstitialShown=now;interstitialAd.show(this);}else loadInterstitial();}
 
     private void loadRewarded(){if(isPro)return;RewardedAd.load(this,REWARDED_ID,new AdRequest.Builder().build(),new RewardedAdLoadCallback(){
-        @Override public void onAdLoaded(RewardedAd ad){rewardedAd=ad;runOnUiThread(()->{if(rewardButton!=null)rewardButton.setVisibility(View.VISIBLE);});}
+        @Override public void onAdLoaded(RewardedAd ad){if(isPro){rewardedAd=null;return;}rewardedAd=ad;runOnUiThread(()->{if(rewardButton!=null&&!isPro)rewardButton.setVisibility(View.VISIBLE);});}
         @Override public void onAdFailedToLoad(LoadAdError e){rewardedAd=null;runOnUiThread(()->{if(rewardButton!=null)rewardButton.setVisibility(View.GONE);});}
     });}
     private void showRewardedIfReady(){
@@ -788,7 +789,7 @@ public class MainActivity extends Activity {
     }
     private int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
     private void renderNative(NativeAd ad){
-        if(nativeContainer==null)return;
+        if(isPro||nativeContainer==null){ad.destroy();return;}
         nativeContainer.removeAllViews();
         LinearLayout wrap=new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL);
         wrap.setPadding(dp(8),dp(6),dp(8),dp(5)); wrap.setBackgroundColor(Color.rgb(247,250,255));
@@ -830,7 +831,7 @@ public class MainActivity extends Activity {
         if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<APP_OPEN_COOLDOWN_MS)return;
         com.google.android.gms.ads.appopen.AppOpenAd.load(this,APP_OPEN_ID,new AdRequest.Builder().build(),new com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback(){
             @Override public void onAdLoaded(com.google.android.gms.ads.appopen.AppOpenAd ad){
-                if(System.currentTimeMillis()-lastAppOpenShown<APP_OPEN_COOLDOWN_MS)return;
+                if(isPro||System.currentTimeMillis()-lastAppOpenShown<APP_OPEN_COOLDOWN_MS)return;
                 appOpenShowing=true;
                 if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
                 ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){

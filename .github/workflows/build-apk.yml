@@ -69,6 +69,18 @@ jobs:
               raise SystemExit("FAIL: automatic History hook was not inserted")
           p.write_text(h, encoding="utf-8")
           print("File picker isolated to #pickFileBtn")
+          history_anchor = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;'
+          if history_anchor not in h:
+              raise SystemExit("FAIL: successful conversion History anchor not found")
+          history_hook = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;if(window.AndroidBridge?.recordConverted){if(b.size<=52428800){try{const reader=new FileReader();const encoded=await new Promise((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(reader.error);reader.readAsDataURL(b)});window.AndroidBridge.recordConverted(resultName,b.type||"application/octet-stream",encoded);window.__allConvertHistoryLarge=false}catch(historyError){console.warn("History local save failed",historyError)}}else{window.__allConvertHistoryLarge=true}}'
+          h = h.replace(history_anchor, history_hook, 1)
+          toast_anchor = 'showToast("✅ Conversion berjaya!",resultName+" sudah siap.");'
+          if toast_anchor not in h:
+              raise SystemExit("FAIL: conversion success toast anchor not found")
+          h = h.replace(toast_anchor, 'showToast("✅ Conversion berjaya!",resultName+" sudah siap."+(window.__allConvertHistoryLarge?" Fail lebih 50 MB tidak masuk History automatik; sila simpan manual.":""));window.__allConvertHistoryLarge=false;', 1)
+          if 'recordConverted' not in h:
+              raise SystemExit("FAIL: automatic History hook was not inserted")
+          p.write_text(h, encoding="utf-8")
           PY
           grep -q 'recordConverted' app/src/main/assets/index.html
           grep -q '#admobBanner{display:none!important' app/src/main/assets/index.html

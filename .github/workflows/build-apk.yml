@@ -137,7 +137,7 @@ jobs:
               h = h.replace('</head>', promo_css + '\n</head>', 1)
           # Recompute the body insertion point after adding head CSS; otherwise the
           # previous byte offset can land inside the style block and corrupt the page.
-          body_match = __import__('re').search(r'<body\\b[^>]*>', h, flags=__import__('re').I)
+          body_match = __import__('re').search(r'<body\b[^>]*>', h, flags=__import__('re').I)
           if not body_match:
               raise SystemExit("FAIL: HTML body insertion point not found after promo CSS")
           insert_at = body_match.end()

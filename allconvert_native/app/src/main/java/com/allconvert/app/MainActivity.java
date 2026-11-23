@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
     private static final String PREFS_ADS="all_convert_ads";
     private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView settingsEntry, historyEntry; private BillingClient billingClient; private final Map<String,ProductDetails> proProducts=new HashMap<>(); private volatile boolean isPro=false; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false;
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView settingsEntry, historyEntry; private BillingClient billingClient; private final Map<String,ProductDetails> proProducts=new HashMap<>(); private volatile boolean isPro=false; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false; private volatile String currentAdPage="home";
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
     private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;
@@ -645,6 +645,9 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void share(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);shareOrOpen(name,type,data);}
         @JavascriptInterface public void openWith(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);openFile(name,type,data);}
         @JavascriptInterface public void showRewarded(){runOnUiThread(MainActivity.this::showRewardedIfReady);}
+        @JavascriptInterface public void openPro(){runOnUiThread(MainActivity.this::showProPlansDialog);}
+        @JavascriptInterface public void openSettings(){runOnUiThread(MainActivity.this::showSettingsDialog);}
+        @JavascriptInterface public void setAdPage(String page){runOnUiThread(()->MainActivity.this.setAdPage(page));}
     }
     private byte[] dec(String s){try{return android.util.Base64.decode(s,android.util.Base64.DEFAULT);}catch(Exception e){return new byte[0];}}
     private String safe(String s){return s==null||s.isEmpty()?"converted_file":s.replaceAll("[\r\n\\/:*?\"<>|]","_");}
@@ -734,6 +737,19 @@ public class MainActivity extends Activity {
     private String q(String s){return JSONObject.quote(String.valueOf(s));}
     private byte[] read(Uri u)throws Exception{try(InputStream i=getContentResolver().openInputStream(u);ByteArrayOutputStream o=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=i.read(b))>0)o.write(b,0,n);return o.toByteArray();}}
 
+    private void setAdPage(String page){
+        currentAdPage="home".equals(page)?"home":"convert";
+        if(isPro)return;
+        if("home".equals(currentAdPage)){
+            if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
+            if(nativeAd!=null&&nativeContainer!=null)nativeContainer.setVisibility(View.VISIBLE);
+            else if(adsInitialized)loadNative();
+        }else{
+            if(nativeContainer!=null)nativeContainer.setVisibility(View.GONE);
+            if(bannerContainer!=null&&bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);
+        }
+    }
+
     private void showBanner(){
         if(isPro||bannerContainer==null)return;
         bannerLoaded=false;
@@ -752,7 +768,7 @@ public class MainActivity extends Activity {
                 bannerLoaded=true;
                 bannerContainer.getLayoutParams().height=android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
                 bannerContainer.requestLayout();
-                bannerContainer.setVisibility(View.VISIBLE);
+                bannerContainer.setVisibility("convert".equals(currentAdPage)?View.VISIBLE:View.GONE);
             }
             @Override public void onAdFailedToLoad(LoadAdError error){
                 bannerLoaded=false;
@@ -826,7 +842,7 @@ public class MainActivity extends Activity {
             hide.setText(nativeHidden[0]?"Tunjukkan iklan":"Sembunyikan iklan");
             hide.setContentDescription(nativeHidden[0]?"Tunjukkan iklan native":"Sembunyikan iklan native");
         });
-        nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
+        nativeContainer.addView(wrap); nativeContainer.setVisibility("home".equals(currentAdPage)?View.VISIBLE:View.GONE);
     }
     private void showAppOpenIfReady(){
         if(isPro||!adsInitialized || consentInformation==null || !consentInformation.canRequestAds())return;
@@ -837,8 +853,8 @@ public class MainActivity extends Activity {
                 appOpenShowing=true;
                 if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
                 ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){
-                    @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putLong(PREF_LAST_APP_OPEN,lastAppOpenShown).apply();appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);}
-                    @Override public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError e){appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);}
+                    @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putLong(PREF_LAST_APP_OPEN,lastAppOpenShown).apply();appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility("convert".equals(currentAdPage)?View.VISIBLE:View.GONE);}
+                    @Override public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError e){appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility("convert".equals(currentAdPage)?View.VISIBLE:View.GONE);}
                 });
                 ad.show(MainActivity.this);
             }

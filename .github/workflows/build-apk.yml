@@ -297,7 +297,8 @@ jobs:
             "four-tab navigation": 'class="ac-bottom-nav"' in h and all(f'data-tab="{x}"' in h for x in ("home","convert","pro","settings")),
             "Pro CTA": 'id="promoPlansBtn"' in h,
             "international language selector script": 'src="i18n.js"' in h,
-            "Free result action lock": 'window.__allConvertLockResultActions' in h and 'window.__allConvertUnlockResultActions' in h,\n  "Native Free action guard": "allowFreeResultAction" in Path("app/src/main/java/com/allconvert/app/MainActivity.java").read_text(encoding="utf-8"),
+            "Free result action lock": 'window.__allConvertLockResultActions' in h and 'window.__allConvertUnlockResultActions' in h,
+            "Native Free action guard": "allowFreeResultAction" in Path("app/src/main/java/com/allconvert/app/MainActivity.java").read_text(encoding="utf-8"),
           }
           failed=[name for name,ok in checks.items() if not ok]
           for name,ok in checks.items(): print(("PASS: " if ok else "FAIL: ")+name)

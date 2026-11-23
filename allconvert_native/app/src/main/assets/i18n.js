@@ -115,6 +115,35 @@ Object.assign(D.en,{
 "Urus akaun, pengalaman aplikasi dan pilihan privasi anda":"Manage your account, app experience and privacy preferences"
 });
 
+
+Object.assign(D.en,{
+"Pembelian tidak berjaya. Cuba lagi.":"Purchase failed. Please try again.",
+"Tawaran langganan tidak tersedia.":"Subscription offer is unavailable.",
+"Akaun Cloud telah dilog keluar. Fail setempat kekal pada telefon.":"Cloud account signed out. Local files remain on this phone.",
+"Akaun All Convert Cloud":"All Convert Cloud Account",
+"Log masuk atau daftar akaun untuk menyimpan History Pro dalam cloud dan memulihkannya pada telefon lain.":"Sign in or create an account to save Pro History to the cloud and restore it on another device.",
+"Log Masuk":"Sign In","Daftar Akaun":"Create Account","History Peranti":"Device History",
+"Masukkan e-mel dan kata laluan sekurang-kurangnya 8 aksara.":"Enter an email and a password with at least 8 characters.",
+"Masukkan e-mel dan kata laluan sekurang-kurangnya 6 aksara.":"Enter an email and a password with at least 6 characters.",
+"Mendaftar akaun…":"Creating account…","Log masuk…":"Signing in…",
+"Akaun cloud berjaya disambungkan.":"Cloud account connected successfully.",
+"Pendaftaran diterima. Sahkan e-mel dahulu, kemudian log masuk.":"Registration received. Verify your email, then sign in.",
+"Sambungan akaun gagal: ":"Account connection failed: ",
+"Memuatkan History cloud…":"Loading cloud History…","History Cloud tidak tersedia":"Cloud History unavailable",
+"Sambungan cloud gagal. Anda masih boleh buka History yang tersimpan pada telefon.":"Cloud connection failed. You can still open History saved on this phone.",
+"Belum ada fail dalam History cloud. Fail baharu akan disimpan selepas penukaran apabila akaun Pro dan sambungan internet tersedia.":"There are no files in cloud History yet. New files will be saved after conversion when Pro and an internet connection are available.",
+"Rekod cloud dipadam.":"Cloud record deleted.","Operasi History gagal: ":"History operation failed: ",
+"Tiada rekod setempat.":"No local records.","Maklumat fail":"File information","Fail History tidak dapat dibaca.":"History file could not be read.",
+"Had muat turun untuk hasil Free ini telah digunakan. Langgan Pro untuk History dan muat turun semula.":"The free result action has already been used. Upgrade to Pro for History and re-downloads.",
+"Preview • ":"Preview • ","HTML Preview":"HTML Preview","Tidak dapat membuka lokasi simpan.":"Unable to open the save location.",
+"Download gagal. Semak ruang storan dan cuba lagi.":"Download failed. Check storage space and try again.",
+"Fail tidak dapat dikongsi.":"File could not be shared.","Tiada aplikasi yang boleh membuka fail ini.":"No app is available to open this file.",
+"Rewarded ad belum tersedia.":"Rewarded ad is not available yet.","Sembunyikan iklan":"Hide ad","Tunjukkan iklan":"Show ad",
+"Lokasi simpan tidak tersedia.":"Save location is unavailable.","Fail berjaya disimpan.":"File saved successfully.","Gagal menyimpan fail. Cuba lokasi lain.":"Could not save the file. Try another location.",
+"Fail":"File","Fail baharu":"New file","Akaun cloud disambungkan":"Cloud account connected","Sambung akaun untuk History cloud":"Connect an account for cloud History",
+"Log keluar":"Sign out","Tutup":"Close","Kembali":"Back","Muat turun":"Download","Simpan":"Save","Kongsi":"Share","Buka Dengan":"Open With"
+});
+
 const device=()=>{for(const l of (navigator.languages||[navigator.language||"en"])){const c=String(l).toLowerCase().split(/[-_]/)[0];if(CODES.includes(c))return c}return"en"};
 let current="en";
 const norm=s=>String(s||"").replace(/\s+/g," ").trim();

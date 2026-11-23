@@ -122,6 +122,29 @@ jobs:
           picker_css = '.pick-file-btn{margin-top:14px;min-height:44px;padding:0 20px;border:0;border-radius:12px;background:linear-gradient(135deg,#7768ff,#22cfee);color:#fff;font-weight:800;cursor:pointer}'
           if '.pick-file-btn{' not in h:
               h = h.replace('</style>', picker_css + '</style>', 1)
+          # Repair conversion routes that previously produced raw HTML as PDF/text.
+          html_helpers = r""" 
+          function htmlToText(source){const doc=new DOMParser().parseFromString(String(source),"text/html");doc.querySelectorAll("script,style,iframe,object,embed").forEach(x=>x.remove());return (doc.body.innerText||doc.body.textContent||"").replace(/\n{3,}/g,"\n\n").trim()}
+          async function htmlToPDF(source){const doc=new DOMParser().parseFromString(String(source),"text/html");doc.querySelectorAll("script,iframe,object,embed,form,base").forEach(x=>x.remove());const root=document.createElement("div");Object.assign(root.style,{position:"fixed",left:"-100000px",top:"0",width:"794px",minHeight:"1123px",padding:"45px",boxSizing:"border-box",background:"#fff",color:"#111",fontFamily:"Arial,sans-serif",fontSize:"16px",lineHeight:"1.5"});const styles=[...doc.head.querySelectorAll("style")].map(x=>x.textContent).join("\n");root.innerHTML=(styles?"<style>"+styles+"</style>":"")+(doc.body.innerHTML||"");root.querySelectorAll("*").forEach(el=>[...el.attributes].forEach(a=>{if(/^on/i.test(a.name)||((a.name==="href"||a.name==="src")&&/^\s*javascript:/i.test(a.value)))el.removeAttribute(a.name)}));document.body.appendChild(root);try{const canvas=await html2canvas(root,{scale:1.5,backgroundColor:"#fff",useCORS:false,logging:false}),{jsPDF}=window.jspdf,p=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"}),pw=p.internal.pageSize.getWidth(),ph=p.internal.pageSize.getHeight(),margin=8,usable=pw-2*margin,pixelsPerMm=canvas.width/usable,pagePixels=Math.floor((ph-2*margin)*pixelsPerMm);let y=0;while(y<canvas.height){const height=Math.min(pagePixels,canvas.height-y),slice=document.createElement("canvas");slice.width=canvas.width;slice.height=height;slice.getContext("2d").drawImage(canvas,0,y,canvas.width,height,0,0,canvas.width,height);if(y>0)p.addPage();p.addImage(slice.toDataURL("image/jpeg",.92),"JPEG",margin,margin,usable,height/pixelsPerMm,undefined,"FAST");y+=height}return p.output("blob")}finally{root.remove()}}
+          async function extractPDFText(file){const pdfjs=await getPdfJs(),pdf=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise,max=Math.min(pdf.numPages,50),parts=[];for(let n=1;n<=max;n++){setStatus("Membaca PDF: muka surat "+n+"/"+pdf.numPages+"…");const page=await pdf.getPage(n),content=await page.getTextContent(),selectable=(content.items||[]).map(x=>x.str||"").join(" ").trim();if(selectable){parts.push("--- Muka surat "+n+" ---\n"+selectable)}else{const base=page.getViewport({scale:1}),scale=Math.min(2.2,1800/base.width),vp=page.getViewport({scale}),canvas=document.createElement("canvas");canvas.width=Math.ceil(vp.width);canvas.height=Math.ceil(vp.height);await page.render({canvasContext:canvas.getContext("2d"),viewport:vp}).promise;const scanned=await ocrImage(canvas);parts.push("--- Muka surat "+n+" ---\n"+scanned.trim())}}if(pdf.numPages>max)parts.push("[Bacaan dihentikan selepas "+max+" muka surat.]");return parts.join("\n\n").trim()}
+          """
+          if "async function htmlToPDF(" not in h:
+              helper_anchor = "async function extractZip(f){"
+              if helper_anchor not in h: raise SystemExit("FAIL: conversion helper insertion point missing")
+              h = h.replace(helper_anchor, html_helpers + "\n" + helper_anchor, 1)
+          if 'const text=await ocrPDF(currentFile);' in h:
+              h = h.replace('const text=await ocrPDF(currentFile);', 'const text=await extractPDFText(currentFile);', 1)
+          else: raise SystemExit("FAIL: PDF-to-text conversion route not found")
+          if 'if(to==="pdf")b=textToPDF(t);else if(to==="html"){' in h:
+              h = h.replace('if(to==="pdf")b=textToPDF(t);else if(to==="html"){', 'if(to==="pdf")b=from==="html"?await htmlToPDF(t):textToPDF(t);else if(to==="html"){', 1)
+          else: raise SystemExit("FAIL: HTML-to-PDF conversion route not found")
+          if 'else{b=new Blob([t],{type:"text/plain"});showText(t)}}else if(from==="pdf"){' in h:
+              h = h.replace('else{b=new Blob([t],{type:"text/plain"});showText(t)}}else if(from==="pdf"){', 'else{const output=from==="html"?htmlToText(t):t;b=new Blob([output],{type:"text/plain"});showText(output)}}else if(from==="pdf"){', 1)
+          else: raise SystemExit("FAIL: HTML-to-TXT conversion route not found")
+          old_download = 'function downloadBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;a.rel="noopener";a.style.display="none";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),10000)}'
+          new_download = 'async function downloadBlob(blob,name){if(window.AndroidBridge?.download){try{const encoded=await blobB64(blob);window.AndroidBridge.download(name,blob.type||"application/octet-stream",encoded);return true}catch(e){console.error("Native ZIP download failed",e)}}const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;a.rel="noopener";a.style.display="none";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),10000);return true}'
+          if old_download in h: h = h.replace(old_download,new_download,1)
+          else: raise SystemExit("FAIL: ZIP download helper not found")
           p.write_text(h, encoding="utf-8")
           PY
           grep -q 'recordConverted' app/src/main/assets/index.html

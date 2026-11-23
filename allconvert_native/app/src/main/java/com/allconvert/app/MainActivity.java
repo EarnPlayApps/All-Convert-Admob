@@ -608,7 +608,7 @@ public class MainActivity extends Activity {
             addInfoRow(panel,"Tetapan Privasi Iklan","Urus persetujuan dan pilihan iklan Google",()->{dialog.dismiss();showPrivacyOptions();});
         }
         dialog.show();
-        if(dialog.getWindow()!=null){dialog.getWindow().setBackgroundDrawable(proBg(Color.rgb(7,11,24),Color.rgb(32,44,71)));dialog.getWindow().setLayout(-1,Math.min(getResources().getDisplayMetrics().heightPixels-dp(72),dp(620)));}
+        if(dialog.getWindow()!=null){dialog.getWindow().setBackgroundDrawable(proBg(Color.rgb(7,11,24),Color.rgb(32,44,71)));int maxHeightDp=(int)(getResources().getDisplayMetrics().heightPixels/getResources().getDisplayMetrics().density)-72;dialog.getWindow().setLayout(-1,dp(Math.min(maxHeightDp,620)));}
         if(dialog.getButton(AlertDialog.BUTTON_NEGATIVE)!=null)dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.rgb(34,207,238));
     }
 

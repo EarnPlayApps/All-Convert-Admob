@@ -3,7 +3,7 @@
  android:layout_width="match_parent"
  android:layout_height="match_parent"
  android:orientation="vertical"
- android:background="#FFFFFFFF">
+ android:background="#FF070B18">
  <LinearLayout
   android:layout_width="match_parent"
   android:layout_height="48dp"
@@ -11,14 +11,14 @@
   android:gravity="center_vertical"
   android:paddingStart="12dp"
   android:paddingEnd="12dp"
-  android:background="#FFFFFFFF">
+  android:background="#FF0B1430">
   <TextView
    android:id="@+id/menuEntry"
    android:layout_width="44dp"
    android:layout_height="match_parent"
    android:gravity="center"
    android:text="☰"
-   android:textColor="#FFE87512"
+   android:textColor="#FF8170FF"
    android:textSize="25sp"
    android:textStyle="bold"
    android:clickable="true"
@@ -32,7 +32,7 @@
    android:paddingStart="8dp"
    android:paddingEnd="8dp"
    android:text="Tetapan"
-   android:textColor="#FF283142"
+   android:textColor="#FFFFFFFF"
    android:textSize="14sp"
    android:textStyle="bold"
    android:clickable="true"
@@ -45,7 +45,7 @@
    android:paddingStart="14dp"
    android:paddingEnd="14dp"
    android:text="History Pro"
-   android:textColor="#FFE87512"
+   android:textColor="#FFFFB15C"
    android:textSize="13sp"
    android:textStyle="bold"
    android:visibility="gone"
@@ -64,7 +64,7 @@
   android:layout_width="match_parent"
   android:layout_height="0dp"
   android:layout_weight="1"
-  android:background="#FFFFFFFF"/>
+  android:background="#FF070B18"/>
  <FrameLayout
   android:id="@+id/nativeAdContainer"
   android:layout_width="match_parent"

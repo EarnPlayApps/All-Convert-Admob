@@ -662,7 +662,20 @@ public class MainActivity extends Activity {
 
     private class AndroidBridge{
         @JavascriptInterface public void recordConverted(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);if(data.length>0)recordHistory(name,type,data);}
-        @JavascriptInterface public void conversionCompleted(){if(!isPro)runOnUiThread(()->{conversionCount++;getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putInt(PREF_CONVERSION_COUNT,conversionCount).apply();if(conversionCount%5==0)showInterstitialIfReady();});}
+        @JavascriptInterface public void conversionCompleted(){
+            getSharedPreferences("all_convert_free_download",MODE_PRIVATE).edit().putBoolean("used_for_current_result",false).apply();
+            if(!isPro)runOnUiThread(()->{conversionCount++;getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putInt(PREF_CONVERSION_COUNT,conversionCount).apply();if(conversionCount%5==0)showInterstitialIfReady();});
+        }
+        @JavascriptInterface public boolean consumeFreeDownload(){
+            if(isPro)return true;
+            SharedPreferences prefs=getSharedPreferences("all_convert_free_download",MODE_PRIVATE);
+            if(prefs.getBoolean("used_for_current_result",false)){
+                runOnUiThread(()->Toast.makeText(MainActivity.this,"Hasil Free hanya boleh dimuat turun sekali. Langgan Pro untuk History dan muat turun semula.",Toast.LENGTH_LONG).show());
+                return false;
+            }
+            prefs.edit().putBoolean("used_for_current_result",true).apply();
+            return true;
+        }
         @JavascriptInterface public void download(String n,String m,String b){
             String name=safe(n); String type=mime(m); byte[] data=dec(b);
             if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}else{saveDownload(name,type,data);}

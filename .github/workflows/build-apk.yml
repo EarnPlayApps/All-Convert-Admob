@@ -88,10 +88,14 @@ jobs:
               if bad_start < 0 or bad_end < 0:
                   raise SystemExit("FAIL: misplaced promotion script could not be isolated")
               h = h[:bad_start] + h[bad_end + len('</script>'):]
-          promo_anchor = '</section>\n<h2 style="font-size:17px;margin:18px 2px 8px;color:#fff">Pilih cara penggunaan</h2>'
-          if promo_anchor not in h:
-              raise SystemExit("FAIL: home promotion insertion point not found")
-          h = h.replace(promo_anchor, '</section>\n' + promo_script + '\n<h2 style="font-size:17px;margin:18px 2px 8px;color:#fff">Pilih cara penggunaan</h2>', 1)
+          promo_start = h.find('id="promoAnnouncement"')
+          if promo_start < 0:
+              raise SystemExit("FAIL: home promotion card not found")
+          promo_end = h.find('</section>', promo_start)
+          if promo_end < 0:
+              raise SystemExit("FAIL: home promotion card is not closed")
+          insert_at = promo_end + len('</section>')
+          h = h[:insert_at] + '\\n' + promo_script + h[insert_at:]
           if h.count("const endpoint='https://hckvehpkzwyerkwpdvlz.supabase.co/functions/v1/allconvert-promotions';") != 1:
               raise SystemExit("FAIL: promotion script must exist exactly once in the main page")
           if "b=new Blob([`<!doctype html><html><head><meta charset=\"utf-8\"><title>Converted DOCX</title></head><body>${h}</body></html>`]" not in h:

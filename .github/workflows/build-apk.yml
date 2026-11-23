@@ -244,7 +244,7 @@ jobs:
           if "ac-bottom-nav" not in h:
               if "</head>" not in h.lower():
                   raise SystemExit("FAIL: HTML head closing tag missing for bottom navigation")
-              h = h.replace("</head>", nav_css + "\\n</head>", 1)
+              h = h.replace("</head>", nav_css + "\n</head>", 1)
               nav = """<nav class="ac-bottom-nav" aria-label="Main navigation">
               <button type="button" data-tab="home" class="active" aria-current="page"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Laman Utama</span></button>
               <button type="button" data-tab="convert"><svg viewBox="0 0 24 24"><path d="M4 7h13m-4-4 4 4-4 4M20 17H7m4-4-4 4 4 4"/></svg><span>Tukar</span></button>
@@ -268,7 +268,7 @@ jobs:
               pos = h.lower().rfind("</body>")
               if pos < 0:
                   raise SystemExit("FAIL: HTML body closing tag missing for bottom navigation")
-              h = h[:pos] + nav + "\\n" + h[pos:]
+              h = h[:pos] + nav + "\n" + h[pos:]
           print("International language support and original four-tab navigation attached.")
           p.write_text(h, encoding="utf-8")
           PY

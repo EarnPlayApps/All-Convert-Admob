@@ -220,7 +220,7 @@ jobs:
             const box=document.getElementById('promoAnnouncement');
             if(!box)return;
             const fmt=value=>new Intl.DateTimeFormat(navigator.language||'en',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kuala_Lumpur'}).format(new Date(value));
-            fetch(endpoint+'?locale='+encodeURIComponent((navigator.language||'en').split('-')[0]),{headers:{apikey:publicKey,Authorization:'Bearer '+publicKey}})
+            fetch(endpoint+'?locale='+encodeURIComponent((navigator.language||'en').split('-')[0]),{headers:{apikey:publicKey}})
               .then(r=>{if(!r.ok)throw new Error('promo unavailable');return r.json()})
               .then(data=>{
                 const promo=data.active||data.next;

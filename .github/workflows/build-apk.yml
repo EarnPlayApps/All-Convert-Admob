@@ -105,22 +105,15 @@ jobs:
               if bad_start < 0 or bad_end < 0:
                   raise SystemExit("FAIL: misplaced promotion script could not be isolated")
               h = h[:bad_start] + h[bad_end + len('</script>'):]
-          promo_start = h.find('id="promoAnnouncement"')
-          if promo_start < 0:
-              body_pos = h.rfind('<body')
-              if body_pos < 0:
-                  raise SystemExit("FAIL: HTML body insertion point not found")
-              body_end = h.find('>', body_pos)
-              if body_end < 0:
-                  raise SystemExit("FAIL: HTML body tag is incomplete")
-              promo_card = '<section id="promoAnnouncement" style="display:none;margin:12px auto;padding:16px;max-width:720px;border:1px solid rgba(230,155,55,.45);border-radius:16px;background:#fff;color:#202633"><strong id="promoEyebrow" style="font-size:12px;letter-spacing:.04em">PENGUMUMAN</strong><h2 id="promoTitle" style="font-size:17px;font-weight:850;margin:8px 0 6px"></h2><p id="promoMessage" style="margin:0 0 8px"></p><p id="promoDates" style="font-size:11px;opacity:.78;margin:0"></p></section>\\n'
-              h = h[:body_end + 1] + promo_card + h[body_end + 1:]
-              promo_start = h.find('id="promoAnnouncement"')
-          promo_end = h.find('</section>', promo_start)
-          if promo_end < 0:
-              raise SystemExit("FAIL: home promotion card is not closed")
-          insert_at = promo_end + len('</section>')
-          h = h[:insert_at] + '\\n' + promo_script + h[insert_at:]
+          # Insert the announcement into the real document body, never by searching
+          # for its id: that id may also occur inside the DOCX HTML template literal
+          # in the main JavaScript, where inserting a <script> closes the app script.
+          body_match = __import__('re').search(r'<body\\b[^>]*>', h, flags=__import__('re').I)
+          if not body_match:
+              raise SystemExit("FAIL: HTML body insertion point not found")
+          promo_card = '<section id="promoAnnouncement" style="display:none;margin:12px auto;padding:16px;max-width:720px;border:1px solid rgba(230,155,55,.45);border-radius:16px;background:#fff;color:#202633"><strong id="promoEyebrow" style="font-size:12px;letter-spacing:.04em">PENGUMUMAN</strong><h2 id="promoTitle" style="font-size:17px;font-weight:850;margin:8px 0 6px"></h2><p id="promoMessage" style="margin:0 0 8px"></p><p id="promoDates" style="font-size:11px;opacity:.78;margin:0"></p></section>\\n'
+          insert_at = body_match.end()
+          h = h[:insert_at] + promo_card + promo_script + '\\n' + h[insert_at:]
           if h.count("const endpoint='https://hckvehpkzwyerkwpdvlz.supabase.co/functions/v1/allconvert-promotions';") != 1:
               raise SystemExit("FAIL: promotion script must exist exactly once in the main page")
           if "b=new Blob([`<!doctype html><html><head><meta charset=\"utf-8\"><title>Converted DOCX</title></head><body>${h}</body></html>`]" not in h:

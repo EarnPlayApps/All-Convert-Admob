@@ -138,7 +138,6 @@ jobs:
           note_end = '</div>\n</div>\n<div class=\"toast\"'
           if note_end not in h: raise SystemExit("FAIL: conversion page closing anchor missing")
           nav = '''
-          </section>
           <nav class="home-nav" aria-label="Navigasi utama">
             <button type="button" id="navHome" class="active">⌂<br>Utama</button>
             <button type="button" id="navConvert">⇄<br>Convert</button>

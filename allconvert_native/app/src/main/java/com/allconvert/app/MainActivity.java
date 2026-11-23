@@ -715,9 +715,9 @@ public class MainActivity extends Activity {
             runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertUnlockResultActions&&window.__allConvertUnlockResultActions()",null);if(!isPro){conversionCount++;getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putInt(PREF_CONVERSION_COUNT,conversionCount).apply();if(conversionCount%5==0)showInterstitialIfReady();}});
         }
         @JavascriptInterface public void download(String n,String m,String b){
-            if(!allowFreeResultAction())return;
             String name=safe(n); String type=mime(m); byte[] data=dec(b);
-            if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}else{saveDownload(name,type,data);}
+            if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}
+            else if(allowFreeResultAction()){saveDownload(name,type,data);}
         }
         @JavascriptInterface public void saveAs(String n,String m,String b){if(!allowFreeResultAction())return;String name=safe(n);byte[] data=dec(b);runOnUiThread(()->{pendingBytes=data;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,name);try{startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}catch(Exception e){pendingBytes=null;Toast.makeText(MainActivity.this,"Tidak dapat membuka lokasi simpan.",Toast.LENGTH_LONG).show();}});}
         @JavascriptInterface public void share(String n,String m,String b){if(!allowFreeResultAction())return;String name=safe(n),type=mime(m);byte[] data=dec(b);shareOrOpen(name,type,data);}
@@ -746,16 +746,8 @@ public class MainActivity extends Activity {
         String html=prepareHtmlPreview(data);
         preview.loadDataWithBaseURL("https://allconvert.local/",html,"text/html","UTF-8",null);
         root.addView(preview,new LinearLayout.LayoutParams(-1,0,1));
-        LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL); actions.setGravity(Gravity.CENTER); actions.setPadding(0,dp(8),0,0);
-        Button download=new Button(this); download.setText(tx("Download")); download.setAllCaps(false);
-        Button save=new Button(this); save.setText(tx("Save As")); save.setAllCaps(false);
-        Button share=new Button(this); share.setText(tx("Share")); share.setAllCaps(false);
-        actions.addView(download,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(save,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(share,new LinearLayout.LayoutParams(0,dp(44),1));
-        root.addView(actions,new LinearLayout.LayoutParams(-1,dp(52)));
+        TextView previewHint=new TextView(this); previewHint.setText(tx("Preview • Tekan Tutup untuk kembali ke hasil.")); previewHint.setTextColor(Color.rgb(185,197,220)); previewHint.setTextSize(12); previewHint.setPadding(dp(4),dp(6),dp(4),dp(6)); root.addView(previewHint,new LinearLayout.LayoutParams(-1,-2));
         final AlertDialog dialog=new AlertDialog.Builder(this).setTitle(tx("HTML Preview")).setView(root).setNegativeButton(tx("Tutup"),null).create();
-        download.setOnClickListener(v->{dialog.dismiss();saveDownload(n,m,data);});
-        save.setOnClickListener(v->{dialog.dismiss();pendingBytes=data;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(m);i.putExtra(Intent.EXTRA_TITLE,n);startActivityForResult(i,SAVE_DOCUMENT_REQUEST);});
-        share.setOnClickListener(v->shareOrOpen(n,m,data));
         dialog.setOnDismissListener(v->preview.destroy());
         dialog.show();
     }

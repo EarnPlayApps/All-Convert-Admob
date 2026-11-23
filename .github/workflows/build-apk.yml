@@ -254,6 +254,14 @@ jobs:
               <script>
               (function(){
                 const nav=document.querySelector('.ac-bottom-nav');if(!nav||nav.dataset.ready)return;nav.dataset.ready='1';
+                document.addEventListener('click',function(e){
+                  const output=e.target.closest('#downloadBtn,#saveBtn,#shareBtn,#openBtn');
+                  if(!output||!window.AndroidBridge||typeof AndroidBridge.consumeFreeDownload!=='function')return;
+                  if(!AndroidBridge.consumeFreeDownload()){
+                    e.preventDefault();e.stopImmediatePropagation();
+                    if(window.showToast)window.showToast('Muat turun telah digunakan','Hasil Free hanya boleh dimuat turun sekali. Langgan Pro untuk History dan muat turun semula.');
+                  }
+                },true);
                 nav.addEventListener('click',function(e){
                   const b=e.target.closest('button[data-tab]');if(!b)return;
                   nav.querySelectorAll('button').forEach(x=>{x.classList.toggle('active',x===b);if(x===b)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});

@@ -167,22 +167,101 @@ public class MainActivity extends Activity {
     }
     private void setProState(boolean enabled){runOnUiThread(()->{isPro=enabled;if(historyEntry!=null)historyEntry.setVisibility(enabled?View.VISIBLE:View.GONE);if(enabled&&!cloudAccessToken.isEmpty())syncLocalHistoryToCloud();});}
     private boolean billingClientReady(){return billingClient!=null&&billingClient.isReady();}
-    private void showProPlansDialog(){
-        if(!billingClientReady()){Toast.makeText(this,"Sambungan Google Play belum tersedia. Cuba lagi sebentar.",Toast.LENGTH_LONG).show();return;}
-        List<ProductDetails> products=new ArrayList<>();
-        for(String id:new String[]{PRO_SUBS[0],PRO_SUBS[1],PRO_LIFETIME})if(proProducts.containsKey(id))products.add(proProducts.get(id));
-        if(products.isEmpty()){queryProProducts();Toast.makeText(this,"Pelan Pro belum tersedia di Google Play. Pastikan produk telah diaktifkan di Play Console.",Toast.LENGTH_LONG).show();return;}
-        String[] labels=new String[products.size()];
-        for(int i=0;i<products.size();i++){
-            ProductDetails d=products.get(i);String price="Harga dipaparkan oleh Google Play";
-            if(d.getOneTimePurchaseOfferDetails()!=null)price=d.getOneTimePurchaseOfferDetails().getFormattedPrice();
-            else if(d.getSubscriptionOfferDetails()!=null&&!d.getSubscriptionOfferDetails().isEmpty()){
-                List<ProductDetails.PricingPhase> phases=d.getSubscriptionOfferDetails().get(0).getPricingPhases().getPricingPhaseList();
-                if(!phases.isEmpty())price=phases.get(phases.size()-1).getFormattedPrice();
-            }
-            labels[i]=d.getName()+"  •  "+price;
+    private android.app.Dialog proDialog;
+    private ProductDetails selectedProProduct;
+
+    private String proPrice(ProductDetails product){
+        if(product==null)return "Harga dipaparkan oleh Google Play";
+        if(product.getOneTimePurchaseOfferDetails()!=null)return product.getOneTimePurchaseOfferDetails().getFormattedPrice();
+        if(product.getSubscriptionOfferDetails()!=null&&!product.getSubscriptionOfferDetails().isEmpty()){
+            List<ProductDetails.PricingPhase> phases=product.getSubscriptionOfferDetails().get(0).getPricingPhases().getPricingPhaseList();
+            if(!phases.isEmpty())return phases.get(phases.size()-1).getFormattedPrice();
         }
-        new AlertDialog.Builder(this).setTitle("Pilih pelan All Convert Pro").setItems(labels,(dialog,which)->launchProPurchase(products.get(which))).setNegativeButton("Tutup",null).show();
+        return "Harga dipaparkan oleh Google Play";
+    }
+    private android.graphics.drawable.GradientDrawable proBg(int color,int stroke){
+        android.graphics.drawable.GradientDrawable d=new android.graphics.drawable.GradientDrawable();
+        d.setColor(color);d.setCornerRadius(dp(20));d.setStroke(dp(1),stroke);return d;
+    }
+    private TextView proText(String value,int size,int color,boolean bold){
+        TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);
+        if(bold)t.setTypeface(null,android.graphics.Typeface.BOLD);
+        t.setGravity(Gravity.CENTER_VERTICAL);return t;
+    }
+    private Button proButton(String label,boolean primary){
+        Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setTextSize(14);
+        b.setTextColor(primary?Color.WHITE:Color.rgb(221,94,0));
+        b.setBackground(proBg(primary?Color.rgb(255,126,0):Color.WHITE,primary?Color.rgb(255,126,0):Color.rgb(255,170,90)));
+        b.setMinHeight(dp(48));return b;
+    }
+    private void addProFeature(LinearLayout parent,String value){
+        TextView t=proText("✓  "+value,13,Color.rgb(55,65,82),false);
+        t.setPadding(dp(4),dp(5),dp(4),dp(5));parent.addView(t,new LinearLayout.LayoutParams(-1,-2));
+    }
+    private void showProPlansDialog(){
+        proDialog=new android.app.Dialog(this);
+        proDialog.setContentView(new LinearLayout(this));
+        showProScreen(0,null);
+        android.view.Window window=proDialog.getWindow();
+        if(window!=null){window.setBackgroundDrawableResource(android.R.color.transparent);window.setLayout(-1,-1);}
+        proDialog.show();
+        if(proDialog.getWindow()!=null)proDialog.getWindow().setLayout(-1,-1);
+    }
+    private void showProScreen(int screen,ProductDetails selected){
+        if(proDialog==null)return;
+        selectedProProduct=selected;
+        LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);
+        page.setPadding(dp(18),dp(12),dp(18),dp(16));page.setBackgroundColor(Color.rgb(248,249,253));
+        LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);
+        TextView back=proText(screen==0?"✕":"‹  Kembali",15,Color.rgb(48,55,72),true);
+        back.setPadding(dp(8),dp(10),dp(14),dp(10));back.setOnClickListener(v->{if(screen==0)proDialog.dismiss();else showProScreen(screen==1?0:screen==2?1:2,selectedProProduct);});
+        top.addView(back,new LinearLayout.LayoutParams(-2,dp(44)));
+        TextView title=proText(screen==0?"Langganan Pro":screen==1?"Pembayaran":screen==2?"Status Langganan":screen==3?"Pembayaran Berjaya!":"Pengurusan Langganan",19,Color.rgb(24,30,45),true);
+        title.setGravity(Gravity.CENTER);top.addView(title,new LinearLayout.LayoutParams(0,dp(44),1));
+        top.addView(new View(this),new LinearLayout.LayoutParams(dp(42),dp(1)));page.addView(top);
+        ScrollView scroll=new ScrollView(this);LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(0,dp(8),0,dp(10));
+        TextView hero=proText("♛  All Convert Pro\nLebih banyak fungsi. Lebih mudah.\nAkses premium untuk kerja harian anda.",18,Color.WHITE,true);
+        hero.setGravity(Gravity.CENTER);hero.setPadding(dp(18),dp(20),dp(18),dp(20));hero.setBackground(proBg(Color.rgb(255,139,0),Color.rgb(255,180,55)));
+        body.addView(hero,new LinearLayout.LayoutParams(-1,dp(132)));
+        if(screen==0){
+            TextView intro=proText("Pilih pelan yang sesuai",15,Color.rgb(35,43,60),true);intro.setPadding(dp(4),dp(16),0,dp(8));body.addView(intro);
+            for(String id:new String[]{PRO_SUBS[0],PRO_SUBS[1]}){
+                ProductDetails product=proProducts.get(id);String name=id.equals(PRO_SUBS[0])?"Bulanan":"Tahunan";
+                LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(14),dp(16),dp(14));card.setBackground(proBg(Color.WHITE,Color.rgb(239,174,110)));
+                TextView h=proText("All Convert Pro • "+name,16,Color.rgb(25,32,48),true);card.addView(h);
+                TextView price=proText(proPrice(product)+(id.equals(PRO_SUBS[0])?" / bulan":" / tahun"),20,Color.rgb(225,100,0),true);price.setPadding(0,dp(7),0,dp(6));card.addView(price);
+                addProFeature(card,"Akses semua fungsi Pro");addProFeature(card,"Tiada iklan");addProFeature(card,"History penukaran");addProFeature(card,"Sokongan premium");
+                Button choose=proButton("Pilih Pelan "+name,true);choose.setOnClickListener(v->{if(product==null){queryProProducts();Toast.makeText(this,"Pelan belum tersedia di Google Play. Cuba lagi selepas produk diaktifkan.",Toast.LENGTH_LONG).show();}else showProScreen(1,product);});
+                LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.topMargin=dp(10);body.addView(card,cp);card.addView(choose);
+                LinearLayout.LayoutParams gap=new LinearLayout.LayoutParams(-1,dp(12));body.addView(new View(this),gap);
+            }
+            TextView note=proText("Harga sebenar dipaparkan oleh Google Play semasa pembelian. Pelan dan pembayaran TNG hanya akan diaktifkan selepas kelulusan serta integrasi rasmi.",12,Color.rgb(105,112,128),false);note.setPadding(dp(4),dp(6),dp(4),dp(8));body.addView(note);
+            Button status=proButton("Lihat Status Langganan",false);status.setOnClickListener(v->showProScreen(2,null));body.addView(status);
+        }else if(screen==1){
+            TextView detail=proText("Pelan dipilih: "+(selected==null?"All Convert Pro":selected.getName())+"\nHarga: "+proPrice(selected),15,Color.rgb(35,43,60),true);
+            detail.setPadding(dp(16),dp(16),dp(16),dp(16));detail.setBackground(proBg(Color.WHITE,Color.rgb(225,231,240)));body.addView(detail);
+            TextView methods=proText("Kaedah Pembayaran",16,Color.rgb(30,38,55),true);methods.setPadding(dp(4),dp(18),0,dp(8));body.addView(methods);
+            TextView tng=proText("Touch ’n Go eWallet\nAkan datang • menunggu kelulusan merchant/API",14,Color.rgb(30,60,120),true);
+            tng.setPadding(dp(16),dp(16),dp(16),dp(16));tng.setBackground(proBg(Color.WHITE,Color.rgb(205,220,248)));body.addView(tng);
+            TextView google=proText("Google Play\nPembayaran selamat melalui Google Play",14,Color.rgb(35,43,60),true);
+            google.setPadding(dp(16),dp(16),dp(16),dp(16));google.setBackground(proBg(Color.WHITE,Color.rgb(239,174,110)));LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(-1,-2);gp.topMargin=dp(10);body.addView(google,gp);
+            Button pay=proButton("Teruskan dengan Google Play",true);pay.setOnClickListener(v->{if(selected!=null){proDialog.dismiss();launchProPurchase(selected);}else Toast.makeText(this,"Sila pilih pelan dahulu.",Toast.LENGTH_SHORT).show();});LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=dp(16);body.addView(pay,pp);
+            TextView legal=proText("TNG belum boleh menerima bayaran dalam aplikasi ini. Kami tidak akan menandakan akaun Pro aktif sehingga transaksi disahkan.",12,Color.rgb(105,112,128),false);legal.setPadding(dp(4),dp(12),dp(4),0);body.addView(legal);
+        }else if(screen==2||screen==3||screen==4){
+            if(screen==3){
+                TextView success=proText("✓\nPembayaran Berjaya!\nAll Convert Pro telah diaktifkan selepas pengesahan Google Play.",18,Color.rgb(25,130,75),true);success.setGravity(Gravity.CENTER);success.setPadding(dp(12),dp(24),dp(12),dp(24));success.setBackground(proBg(Color.rgb(235,251,242),Color.rgb(160,225,185)));body.addView(success);
+                Button done=proButton("Selesai",true);done.setOnClickListener(v->proDialog.dismiss());body.addView(done);
+            }else{
+                TextView status=proText(isPro?"●  All Convert Pro — AKTIF":"○  All Convert Pro — BELUM AKTIF",17,isPro?Color.rgb(20,145,80):Color.rgb(105,112,128),true);
+                status.setPadding(dp(16),dp(18),dp(16),dp(18));status.setBackground(proBg(Color.WHITE,Color.rgb(225,231,240)));body.addView(status);
+                TextView details=proText(isPro?"Akses Pro tersedia pada peranti ini.\nStatus akan disemak semula melalui Google Play.":"Tiada pembelian Pro aktif ditemui.\nPulihkan pembelian untuk menyemak semula transaksi terdahulu.",14,Color.rgb(55,65,82),false);details.setPadding(dp(8),dp(14),dp(8),dp(14));body.addView(details);
+                Button restore=proButton("Pulihkan Pembelian",false);restore.setOnClickListener(v->{queryProPurchases();Toast.makeText(this,"Sedang menyemak pembelian Google Play…",Toast.LENGTH_SHORT).show();});body.addView(restore);
+                Button manage=proButton("Pengurusan / Batal Langganan",false);manage.setOnClickListener(v->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/account/subscriptions?package=com.allconvert.app")));}catch(Exception e){Toast.makeText(this,"Halaman langganan Google Play tidak dapat dibuka.",Toast.LENGTH_SHORT).show();}});LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);mp.topMargin=dp(8);body.addView(manage,mp);
+            }
+        }
+        scroll.addView(body);page.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        Button close=proButton("Tutup",false);close.setOnClickListener(v->proDialog.dismiss());page.addView(close,new LinearLayout.LayoutParams(-1,dp(48)));
+        proDialog.setContentView(page);
     }
     private void launchProPurchase(ProductDetails product){
         BillingFlowParams.ProductDetailsParams.Builder detail=BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(product);

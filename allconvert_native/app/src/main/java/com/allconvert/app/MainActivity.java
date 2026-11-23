@@ -567,6 +567,7 @@ public class MainActivity extends Activity {
         panel.addView(version,new LinearLayout.LayoutParams(-1,-2));
         AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Tetapan").setView(panel).setNegativeButton("Tutup",null).create();
         addInfoRow(panel,"Langganan Pro","Buka ciri premium dan History",()->{dialog.dismiss();showProPlansDialog();});
+        if(!isPro)addInfoRow(panel,"Tonton Iklan Rewarded","Tonton video untuk langkau iklan sela seterusnya",()->{dialog.dismiss();showRewardedIfReady();});
         addInfoRow(panel,"Pulihkan Pembelian","Semak semula langganan atau pembelian terdahulu",()->{dialog.dismiss();queryProPurchases();Toast.makeText(this,"Sedang menyemak pembelian Google Play…",Toast.LENGTH_SHORT).show();});
         if(isPro||!cloudAccessToken.isEmpty())addInfoRow(panel,"Akaun Cloud",cloudAccessToken.isEmpty()?"Sambung akaun untuk History cloud":"Akaun cloud disambungkan",()->{dialog.dismiss();if(cloudAccessToken.isEmpty())showCloudAccountDialog();else new AlertDialog.Builder(this).setTitle("Akaun Cloud").setMessage("Akaun All Convert Cloud sedang disambungkan.").setPositiveButton("Log keluar",(d,w)->logoutCloud()).setNegativeButton("Kembali",null).show();});
         addInfoRow(panel,"Dasar Privasi","Cara maklumat dan data dikendalikan",()->{dialog.dismiss();showLegalPage("privacy_policy.html","Dasar Privasi");});
@@ -742,14 +743,9 @@ public class MainActivity extends Activity {
     private void setAdPage(String page){
         currentAdPage="home".equals(page)?"home":"convert";
         if(isPro)return;
-        if("home".equals(currentAdPage)){
-            if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
-            if(nativeAd!=null&&nativeContainer!=null)nativeContainer.setVisibility(View.VISIBLE);
-            else if(adsInitialized)loadNative();
-        }else{
-            if(nativeContainer!=null)nativeContainer.setVisibility(View.GONE);
-            if(bannerContainer!=null&&bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);
-        }
+        if(nativeContainer!=null)nativeContainer.setVisibility(nativeAd!=null?View.VISIBLE:View.GONE);
+        if(bannerContainer!=null)bannerContainer.setVisibility(bannerLoaded?View.VISIBLE:View.GONE);
+        if(nativeAd==null&&adsInitialized)loadNative();
     }
 
     private void showBanner(){
@@ -770,7 +766,7 @@ public class MainActivity extends Activity {
                 bannerLoaded=true;
                 bannerContainer.getLayoutParams().height=android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
                 bannerContainer.requestLayout();
-                bannerContainer.setVisibility("convert".equals(currentAdPage)?View.VISIBLE:View.GONE);
+                bannerContainer.setVisibility(View.VISIBLE);
             }
             @Override public void onAdFailedToLoad(LoadAdError error){
                 bannerLoaded=false;
@@ -846,7 +842,7 @@ public class MainActivity extends Activity {
             hide.setText(nativeHidden[0]?"Tunjukkan iklan":"Sembunyikan iklan");
             hide.setContentDescription(nativeHidden[0]?"Tunjukkan iklan native":"Sembunyikan iklan native");
         });
-        nativeContainer.addView(wrap); nativeContainer.setVisibility("home".equals(currentAdPage)?View.VISIBLE:View.GONE);
+        nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }
     private void showAppOpenIfReady(){
         if(isPro||!adsInitialized || consentInformation==null || !consentInformation.canRequestAds())return;
@@ -857,7 +853,7 @@ public class MainActivity extends Activity {
                 appOpenShowing=true;
                 if(bannerContainer!=null)bannerContainer.setVisibility(View.GONE);
                 ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){
-                    @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putLong(PREF_LAST_APP_OPEN,lastAppOpenShown).apply();appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility("convert".equals(currentAdPage)?View.VISIBLE:View.GONE);}
+                    @Override public void onAdDismissedFullScreenContent(){lastAppOpenShown=System.currentTimeMillis();getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putLong(PREF_LAST_APP_OPEN,lastAppOpenShown).apply();appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility(View.VISIBLE);}
                     @Override public void onAdFailedToShowFullScreenContent(com.google.android.gms.ads.AdError e){appOpenShowing=false;if(bannerContainer!=null && bannerLoaded)bannerContainer.setVisibility("convert".equals(currentAdPage)?View.VISIBLE:View.GONE);}
                 });
                 ad.show(MainActivity.this);

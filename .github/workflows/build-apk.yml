@@ -64,8 +64,23 @@ jobs:
           if css_anchor not in h:
               raise SystemExit("FAIL: drop CSS anchor not found")
           h = h.replace(css_anchor, '.drop{position:relative;margin-top:18px;', 1)
-          button_css = '.pick-file-btn{margin-top:14px;min-height:44px;padding:0 22px;border:0;border-radius:13px;color:#fff;font-weight:800;background:linear-gradient(135deg,#7768ff,#22cfee);box-shadow:0 8px 22px #4769ff38;cursor:pointer}.pick-file-btn:active{transform:scale(.98)}'
-          h = h.replace('</style>', button_css + '</style>', 1)
+          button_css = '.pick-file-btn{margin-top:14px;min-height:48px;padding:0 24px;border:1px solid rgba(255,255,255,.8);border-radius:15px;color:#fff;font-weight:800;background:linear-gradient(135deg,#ffad55 0%,#ff861f 48%,#e96908 100%);box-shadow:0 10px 24px rgba(224,105,8,.25),inset 0 1px 0 rgba(255,255,255,.55);cursor:pointer}.pick-file-btn:active{transform:scale(.98)}'
+          glossy_css = r"""
+          :root{color-scheme:light;--ac-orange:#f47a16;--ac-ink:#263247;--ac-glass:rgba(255,255,255,.84)}
+          *{-webkit-tap-highlight-color:transparent}
+          body{color:var(--ac-ink)!important;background:radial-gradient(ellipse at 12% 0%,rgba(255,211,165,.36),transparent 42%),radial-gradient(ellipse at 100% 24%,rgba(255,235,213,.72),transparent 38%),linear-gradient(155deg,#fffefa 0%,#fff8f1 54%,#f8fbff 100%)!important}
+          header,.header,.topbar,.top-bar,.app-header,.toolbar,.nav-bar{background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(255,247,238,.88))!important;border-bottom:1px solid rgba(255,255,255,.95)!important;box-shadow:0 8px 24px rgba(52,59,77,.07),inset 0 1px 0 #fff!important;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+          .card,.panel,.converter,.converter-card,.drop,.result,.result-card,.settings-card,.setting-card,.history-card,.file-card,.tool-card,.section-card,.upload-card,.output-card{border:1px solid rgba(255,255,255,.96)!important;background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(255,247,239,.93))!important;box-shadow:0 14px 34px rgba(49,59,78,.075),inset 0 1px 0 rgba(255,255,255,.98)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+          .drop{border:1.5px dashed rgba(239,126,36,.48)!important;border-radius:24px!important;box-shadow:0 16px 38px rgba(236,137,55,.11),inset 0 1px 0 #fff!important}
+          .drop-icon{filter:drop-shadow(0 5px 9px rgba(224,120,28,.18))}
+          .drop-title{color:#273247!important;font-weight:800!important}
+          .drop-sub{color:#778195!important}
+          button,.btn,input[type=button],input[type=submit]{border-radius:14px!important;font-weight:700!important;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
+          .pick-file-btn,#convertBtn,#convertButton,#downloadBtn,.primary-btn,.btn-primary,.action-primary,[data-primary=true]{color:#fff!important;border:1px solid rgba(255,255,255,.72)!important;background:linear-gradient(135deg,#ffb768 0%,#ff8b2b 46%,#ed700d 100%)!important;box-shadow:0 10px 24px rgba(224,105,8,.23),inset 0 1px 0 rgba(255,255,255,.62)!important;text-shadow:0 1px 1px rgba(120,58,5,.14)}
+          input:not([type=file]),select,textarea{border:1px solid rgba(221,226,235,.95)!important;border-radius:13px!important;background:linear-gradient(145deg,#fff,#fffaf5)!important;box-shadow:inset 0 1px 2px rgba(42,52,70,.035),0 4px 12px rgba(42,52,70,.035)!important}
+          .drop,.card,.panel,.converter-card,.result-card,.history-card,.tool-card{overflow:hidden}
+          """
+          h = h.replace('</style>', button_css + glossy_css + '</style>', 1)
           js_anchor = '$("downloadBtn").onclick=downloadResultFile;'
           if js_anchor not in h:
               raise SystemExit("FAIL: file picker event insertion point not found")

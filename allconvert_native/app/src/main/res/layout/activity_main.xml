@@ -4,11 +4,61 @@
  android:layout_height="match_parent"
  android:orientation="vertical"
  android:background="#FF070B18">
-<LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:visibility="gone">
-<TextView android:id="@+id/historyEntry" android:layout_width="wrap_content" android:layout_height="1dp" android:text="History" android:visibility="gone"/>
-<TextView android:id="@+id/settingsEntry" android:layout_width="wrap_content" android:layout_height="1dp" android:text="Tetapan"/>
-</LinearLayout>
-<WebView android:id="@+id/webView" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="#FF070B18"/>
-<FrameLayout android:id="@+id/nativeAdContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:background="#FF0B1430" android:padding="0dp"/>
-<FrameLayout android:id="@+id/bannerContainer" android:layout_width="match_parent" android:layout_height="0dp" android:visibility="gone" android:gravity="center" android:background="#FF0B1430"/>
+ <LinearLayout
+  android:layout_width="match_parent"
+  android:layout_height="48dp"
+  android:orientation="horizontal"
+  android:gravity="center_vertical"
+  android:paddingStart="12dp"
+  android:paddingEnd="12dp"
+  android:background="#FF0B1430">
+  <TextView
+   android:id="@+id/settingsEntry"
+   android:layout_width="0dp"
+   android:layout_height="match_parent"
+   android:layout_weight="1"
+   android:gravity="center_vertical|start"
+   android:paddingStart="8dp"
+   android:paddingEnd="8dp"
+   android:text="Tetapan"
+   android:textColor="#FFFFFFFF"
+   android:textSize="14sp"
+   android:textStyle="bold"
+   android:clickable="true"
+   android:focusable="true"/>
+  <TextView
+   android:id="@+id/historyEntry"
+   android:layout_width="wrap_content"
+   android:layout_height="match_parent"
+   android:gravity="center"
+   android:paddingStart="14dp"
+   android:paddingEnd="14dp"
+   android:text="History Pro"
+   android:textColor="#FFFFB15C"
+   android:textSize="13sp"
+   android:textStyle="bold"
+   android:visibility="gone"
+   android:clickable="true"
+   android:focusable="true"/>
+ </LinearLayout>
+ <WebView
+  android:id="@+id/webView"
+  android:layout_width="match_parent"
+  android:layout_height="0dp"
+  android:layout_weight="1"
+  android:background="#FF070B18"/>
+ <FrameLayout
+  android:id="@+id/nativeAdContainer"
+  android:layout_width="match_parent"
+  android:layout_height="wrap_content"
+  android:visibility="gone"
+  android:background="#FF0B1430"
+  android:padding="0dp"/>
+ <FrameLayout
+  android:id="@+id/bannerContainer"
+  android:layout_width="match_parent"
+  android:layout_height="0dp"
+  android:visibility="gone"
+  android:gravity="center"
+  android:background="#FF0B1430"/>
 </LinearLayout>

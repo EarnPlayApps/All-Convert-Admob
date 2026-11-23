@@ -90,7 +90,7 @@ public class MainActivity extends Activity {
     private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
     private static final String PREF_CONVERSION_COUNT="conversion_count";
 
-    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView settingsEntry, historyEntry; private BillingClient billingClient; private final Map<String,ProductDetails> proProducts=new HashMap<>(); private volatile boolean isPro=false; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false; private volatile String currentAdPage="home";
+    private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView menuEntry, settingsEntry, historyEntry; private BillingClient billingClient; private final Map<String,ProductDetails> proProducts=new HashMap<>(); private volatile boolean isPro=false; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false; private volatile String currentAdPage="home";
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
     private InterstitialAd interstitialAd; private RewardedAd rewardedAd;
     private int conversionCount=0; private long lastInterstitialShown=0L; private long lastAppOpenShown=0L; private boolean firstSession=true; private boolean appOpenShowing=false; private boolean skipNextInterstitial=false;
@@ -98,7 +98,8 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle b){
         super.onCreate(b); setContentView(R.layout.activity_main);
         lastAppOpenShown=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getLong(PREF_LAST_APP_OPEN,0L);conversionCount=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getInt(PREF_CONVERSION_COUNT,0);
-        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); settingsEntry=findViewById(R.id.settingsEntry); historyEntry=findViewById(R.id.historyEntry); rewardButton=null;
+        webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); menuEntry=findViewById(R.id.menuEntry); settingsEntry=findViewById(R.id.settingsEntry); historyEntry=findViewById(R.id.historyEntry); rewardButton=null;
+        menuEntry.setOnClickListener(v->showMainMenuDialog());
         settingsEntry.setOnClickListener(v->showSettingsDialog());
         historyEntry.setOnClickListener(v->showHistoryDialog());
         initializeCloudSession();
@@ -547,6 +548,20 @@ public class MainActivity extends Activity {
     }
 
     private void updatePrivacyOptionsEntry(){ /* The privacy action is displayed inside the app information panel when required. */ }
+
+    private void showMainMenuDialog(){
+        final String[] labels=isPro
+            ? new String[]{"Mula / Penukar Fail","Pelan All Convert Pro","History Pro","Tetapan & Maklumat"}
+            : new String[]{"Mula / Penukar Fail","Pelan All Convert Pro","History & Muat Turun (Pro)","Tetapan & Maklumat"};
+        new AlertDialog.Builder(this)
+            .setTitle("Menu All Convert")
+            .setItems(labels,(dialog,which)->{
+                if(which==0){webView.evaluateJavascript("window.scrollTo({top:0,behavior:'smooth'})",null);}
+                else if(which==1)showProPlansDialog();
+                else if(which==2)showHistoryDialog();
+                else showSettingsDialog();
+            }).setNegativeButton("Tutup",null).show();
+    }
 
     private void showSettingsDialog(){
         LinearLayout panel=new LinearLayout(this);

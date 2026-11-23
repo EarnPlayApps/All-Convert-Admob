@@ -248,12 +248,18 @@ public class MainActivity extends Activity {
         body.addView(hero,new LinearLayout.LayoutParams(-1,dp(132)));
         if(screen==0){
             TextView intro=proText("Pilih pelan yang sesuai",15,Color.WHITE,true);intro.setPadding(dp(4),dp(16),0,dp(8));body.addView(intro);
-            for(String id:new String[]{PRO_SUBS[0],PRO_SUBS[1],PRO_LIFETIME}){
+            LinearLayout freeCard=new LinearLayout(this);freeCard.setOrientation(LinearLayout.VERTICAL);freeCard.setPadding(dp(16),dp(14),dp(16),dp(14));freeCard.setBackground(proBg(Color.rgb(18,27,45),Color.rgb(32,44,71)));
+            TextView freeTitle=proText("All Convert • Percuma",16,Color.WHITE,true);freeCard.addView(freeTitle);
+            TextView freeDesc=proText("Conversion asas dan satu muat turun bagi setiap hasil. Tiada History atau muat turun semula.",12,Color.rgb(174,185,209),false);freeDesc.setPadding(0,dp(6),0,dp(2));freeCard.addView(freeDesc);
+            body.addView(freeCard,new LinearLayout.LayoutParams(-1,-2));
+            LinearLayout.LayoutParams freeGap=new LinearLayout.LayoutParams(-1,dp(10));body.addView(new View(this),freeGap);
+            for(String id:new String[]{PRO_SUBS[1],PRO_LIFETIME,PRO_SUBS[0]}){
                 ProductDetails product=proProducts.get(id);
                 boolean lifetime=id.equals(PRO_LIFETIME);
                 String name=lifetime?"Seumur Hidup":id.equals(PRO_SUBS[0])?"Bulanan":"Tahunan";
                 String suffix=lifetime?" • sekali bayar":id.equals(PRO_SUBS[0])?" / bulan":" / tahun";
                 LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(14),dp(16),dp(14));card.setBackground(proBg(Color.rgb(12,18,33),Color.rgb(59,76,120)));card.setElevation(dp(4));
+                if(id.equals(PRO_SUBS[1])||lifetime){TextView tag=proText(id.equals(PRO_SUBS[1])?"BEST VALUE • TAHUNAN":"AKSES SEUMUR HIDUP",10,Color.rgb(34,207,238),true);tag.setPadding(0,0,0,dp(5));card.addView(tag);}
                 TextView h=proText("All Convert Pro • "+name,lifetime?17:16,Color.WHITE,true);card.addView(h);
                 TextView price=proText(proPrice(product)+suffix,20,Color.rgb(34,207,238),true);price.setPadding(0,dp(7),0,dp(6));card.addView(price);
                 addProFeature(card,"Pengalaman tanpa iklan semasa Pro aktif");

@@ -105,7 +105,7 @@ public class MainActivity extends Activity {
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
         webView.addJavascriptInterface(new AndroidBridge(),"AndroidBridge");
-        webView.setWebViewClient(new WebViewClient(){@Override public void onPageFinished(WebView v,String u){handleIncoming(getIntent());}});
+        webView.setWebViewClient(new WebViewClient(){@Override public void onPageFinished(WebView v,String u){handleIncoming(getIntent());v.evaluateJavascript("window.__allConvertSetPro&&window.__allConvertSetPro("+isPro+")",null);v.evaluateJavascript("window.AndroidBridge&&window.AndroidBridge.setAdPage&&window.AndroidBridge.setAdPage('home')",null);}});
         webView.setWebChromeClient(new WebChromeClient(){@Override public boolean onShowFileChooser(WebView v,ValueCallback<Uri[]> cb,FileChooserParams p){
             if(filePathCallback!=null)filePathCallback.onReceiveValue(null); filePathCallback=cb;
             try{startActivityForResult(p.createIntent(),FILE_CHOOSER_REQUEST);return true;}catch(Exception e){filePathCallback=null;cb.onReceiveValue(null);return false;}
@@ -168,7 +168,8 @@ public class MainActivity extends Activity {
     }
     private void setProState(boolean enabled){runOnUiThread(()->{
         isPro=enabled;
-        if(historyEntry!=null)historyEntry.setVisibility(enabled?View.VISIBLE:View.GONE);
+        if(historyEntry!=null)historyEntry.setVisibility(View.GONE);
+        if(webView!=null)webView.evaluateJavascript("window.__allConvertSetPro&&window.__allConvertSetPro("+enabled+")",null);
         if(enabled){
             adsInitialized=false;
             if(bannerContainer!=null){bannerContainer.setVisibility(View.GONE);bannerContainer.removeAllViews();if(bannerContainer.getLayoutParams()!=null){bannerContainer.getLayoutParams().height=0;bannerContainer.requestLayout();}}
@@ -647,6 +648,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void showRewarded(){runOnUiThread(MainActivity.this::showRewardedIfReady);}
         @JavascriptInterface public void openPro(){runOnUiThread(MainActivity.this::showProPlansDialog);}
         @JavascriptInterface public void openSettings(){runOnUiThread(MainActivity.this::showSettingsDialog);}
+        @JavascriptInterface public void openHistory(){runOnUiThread(MainActivity.this::showHistoryDialog);}
         @JavascriptInterface public void setAdPage(String page){runOnUiThread(()->MainActivity.this.setAdPage(page));}
     }
     private byte[] dec(String s){try{return android.util.Base64.decode(s,android.util.Base64.DEFAULT);}catch(Exception e){return new byte[0];}}

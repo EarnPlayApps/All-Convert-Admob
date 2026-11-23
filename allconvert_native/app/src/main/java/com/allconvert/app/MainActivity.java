@@ -638,6 +638,7 @@ public class MainActivity extends Activity {
 
     private class AndroidBridge{
         @JavascriptInterface public void recordConverted(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);if(data.length>0)recordHistory(name,type,data);}
+        @JavascriptInterface public void conversionCompleted(){if(!isPro)runOnUiThread(()->{conversionCount++;if(conversionCount%5==0)showInterstitialIfReady();});}
         @JavascriptInterface public void download(String n,String m,String b){
             String name=safe(n); String type=mime(m); byte[] data=dec(b);
             if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}else{saveDownload(name,type,data);}
@@ -701,30 +702,31 @@ public class MainActivity extends Activity {
     }
 
     private void saveDownload(String n,String m,byte[] data){
-        if(data.length==0)return; try{
+        if(data==null||data.length==0)return;
+        new Thread(()->{try{
             ContentValues v=new ContentValues();v.put(MediaStore.Downloads.DISPLAY_NAME,n);v.put(MediaStore.Downloads.MIME_TYPE,m);v.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/All Convert");
-            Uri u=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,v);if(u==null)throw new Exception();
-            try(OutputStream o=getContentResolver().openOutputStream(u)){o.write(data);}
-            runOnUiThread(()->{webView.evaluateJavascript("window.__allConvertNativeDone&&window.__allConvertNativeDone('download')",null);conversionCount++;if(conversionCount%5==0)showInterstitialIfReady();});
-        }catch(Exception e){runOnUiThread(()->webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('download')",null));}
+            Uri u=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,v);if(u==null)throw new Exception("Tidak dapat menyediakan fail Download.");
+            try(OutputStream o=getContentResolver().openOutputStream(u)){if(o==null)throw new Exception("Lokasi Download tidak boleh dibuka.");o.write(data);o.flush();}
+            runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeDone&&window.__allConvertNativeDone('download')",null);});
+        }catch(Exception e){runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('download')",null);Toast.makeText(this,"Download gagal. Semak ruang storan dan cuba lagi.",Toast.LENGTH_LONG).show();});}}).start();
     }
     private void shareOrOpen(String n,String m,byte[] data){
-        try{
-            File d=new File(getCacheDir(),"shared");if(!d.exists())d.mkdirs();File f=new File(d,n);
-            try(FileOutputStream o=new FileOutputStream(f)){o.write(data);}
+        new Thread(()->{try{
+            File d=new File(getCacheDir(),"shared");if(!d.exists()&&!d.mkdirs())throw new Exception("Folder sementara tidak dapat dibuat.");
+            File f=new File(d,n);try(FileOutputStream o=new FileOutputStream(f)){o.write(data);o.flush();}
             Uri u=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f);
             Intent i=new Intent(Intent.ACTION_SEND);i.setType(m);i.putExtra(Intent.EXTRA_STREAM,u);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(Intent.createChooser(i,"Share / Open With"));
-        }catch(Exception e){webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('share')",null);}
+            runOnUiThread(()->{try{startActivity(Intent.createChooser(i,"Share fail"));}catch(Exception e){if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('share')",null);}});
+        }catch(Exception e){runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('share')",null);Toast.makeText(this,"Fail tidak dapat dikongsi.",Toast.LENGTH_LONG).show();});}}).start();
     }
     private void openFile(String n,String m,byte[] data){
-        try{
-            File d=new File(getCacheDir(),"shared");if(!d.exists())d.mkdirs();File f=new File(d,n);
-            try(FileOutputStream o=new FileOutputStream(f)){o.write(data);}
+        new Thread(()->{try{
+            File d=new File(getCacheDir(),"shared");if(!d.exists()&&!d.mkdirs())throw new Exception("Folder sementara tidak dapat dibuat.");
+            File f=new File(d,n);try(FileOutputStream o=new FileOutputStream(f)){o.write(data);o.flush();}
             Uri u=FileProvider.getUriForFile(this,getPackageName()+".fileprovider",f);
             Intent i=new Intent(Intent.ACTION_VIEW);i.setDataAndType(u,m);i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(i);
-        }catch(Exception e){shareOrOpen(n,m,data);}
+            runOnUiThread(()->{try{startActivity(i);}catch(Exception e){shareOrOpen(n,m,data);}});
+        }catch(Exception e){runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertNativeError&&window.__allConvertNativeError('openWith')",null);Toast.makeText(this,"Tiada aplikasi yang boleh membuka fail ini.",Toast.LENGTH_LONG).show();});}}).start();
     }
     private void handleIncoming(Intent x){
         if(x==null)return;String a=x.getAction();Uri u=x.getData();

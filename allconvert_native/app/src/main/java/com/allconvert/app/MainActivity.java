@@ -606,14 +606,14 @@ public class MainActivity extends Activity {
         TextView row=new TextView(this);
         row.setText(title+"\n"+subtitle+"     ›");
         row.setTextSize(14);
-        row.setTextColor(Color.rgb(30,45,70));
+        row.setTextColor(Color.rgb(221,229,245));
         row.setLineSpacing(dp(2),1f);
         row.setPadding(dp(15),dp(13),dp(15),dp(13));
         android.graphics.drawable.GradientDrawable bg=new android.graphics.drawable.GradientDrawable();
         bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
-        bg.setColors(new int[]{Color.WHITE,Color.rgb(255,248,240)});
+        bg.setColors(new int[]{Color.rgb(18,27,45),Color.rgb(12,18,33)});
         bg.setCornerRadius(dp(16));
-        bg.setStroke(dp(1),Color.rgb(245,230,214));
+        bg.setStroke(dp(1),Color.rgb(59,76,120));
         row.setBackground(bg);
         row.setElevation(dp(3));
         row.setClickable(true);

@@ -93,7 +93,7 @@ jobs:
               if close < 0:
                   raise SystemExit("FAIL: HTML body closing tag not found for native file bridge")
               native_bridge = native_bridge.replace('(function(){','(function(){window.__allConvertNativeBridgeInstalled=true;',1)
-              h = h[:close] + native_bridge + '\\n' + h[close:]
+              h = h[:close] + native_bridge + '\n' + h[close:]
           # Repair promotion script placement: it was accidentally inserted inside
           # the DOCX-to-HTML template literal, truncating the main application script.
           promo_script = """<script>(function(){const endpoint='https://hckvehpkzwyerkwpdvlz.supabase.co/functions/v1/allconvert-promotions';const publicKey='sb_publishable_W1nZcXZSwu3oeKA35iQeJA_AU579wju';const box=document.getElementById('promoAnnouncement');if(!box)return;const fmt=value=>new Intl.DateTimeFormat(navigator.language||'en',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kuala_Lumpur'}).format(new Date(value));fetch(endpoint+'?locale='+encodeURIComponent((navigator.language||'en').split('-')[0]),{headers:{apikey:publicKey}}).then(r=>{if(!r.ok)throw new Error('promo unavailable');return r.json()}).then(data=>{const promo=data.active||data.next;if(!promo)return;const active=!!data.active;document.getElementById('promoEyebrow').textContent=active?(data.ending_soon?'PROMO HAMPIR TAMAT':'PROMO SEDANG BERLANGSUNG'):'PROMO AKAN DATANG';document.getElementById('promoTitle').textContent=promo.title||'Pengumuman All Convert';document.getElementById('promoMessage').textContent=promo.message||'Semak tawaran terkini All Convert Pro.';document.getElementById('promoDates').textContent=(active?'Sah sehingga ':'Bermula ')+(active?fmt(promo.ends_at):fmt(promo.starts_at))+' · Waktu Malaysia';box.style.display='block'}).catch(()=>{box.style.display='none'})})();</script>"""
@@ -111,9 +111,9 @@ jobs:
           body_match = __import__('re').search(r'<body\\b[^>]*>', h, flags=__import__('re').I)
           if not body_match:
               raise SystemExit("FAIL: HTML body insertion point not found")
-          promo_card = '<section id="promoAnnouncement" style="display:none;margin:12px auto;padding:16px;max-width:720px;border:1px solid rgba(230,155,55,.45);border-radius:16px;background:#fff;color:#202633"><strong id="promoEyebrow" style="font-size:12px;letter-spacing:.04em">PENGUMUMAN</strong><h2 id="promoTitle" style="font-size:17px;font-weight:850;margin:8px 0 6px"></h2><p id="promoMessage" style="margin:0 0 8px"></p><p id="promoDates" style="font-size:11px;opacity:.78;margin:0"></p></section>\\n'
+          promo_card = '<section id="promoAnnouncement" style="display:none;margin:12px auto;padding:16px;max-width:720px;border:1px solid rgba(230,155,55,.45);border-radius:16px;background:#fff;color:#202633"><strong id="promoEyebrow" style="font-size:12px;letter-spacing:.04em">PENGUMUMAN</strong><h2 id="promoTitle" style="font-size:17px;font-weight:850;margin:8px 0 6px"></h2><p id="promoMessage" style="margin:0 0 8px"></p><p id="promoDates" style="font-size:11px;opacity:.78;margin:0"></p></section>\n'
           insert_at = body_match.end()
-          h = h[:insert_at] + promo_card + promo_script + '\\n' + h[insert_at:]
+          h = h[:insert_at] + promo_card + promo_script + '\n' + h[insert_at:]
           if h.count("const endpoint='https://hckvehpkzwyerkwpdvlz.supabase.co/functions/v1/allconvert-promotions';") != 1:
               raise SystemExit("FAIL: promotion script must exist exactly once in the main page")
           if "b=new Blob([`<!doctype html><html><head><meta charset=\"utf-8\"><title>Converted DOCX</title></head><body>${h}</body></html>`]" not in h:

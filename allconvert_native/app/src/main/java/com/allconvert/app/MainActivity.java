@@ -182,7 +182,11 @@ public class MainActivity extends Activity {
     }
     private android.graphics.drawable.GradientDrawable proBg(int color,int stroke){
         android.graphics.drawable.GradientDrawable d=new android.graphics.drawable.GradientDrawable();
-        d.setColor(color);d.setCornerRadius(dp(20));d.setStroke(dp(1),stroke);return d;
+        int r=Color.red(color),g=Color.green(color),b=Color.blue(color);
+        int light=Color.rgb(Math.min(255,r+Math.round((255-r)*0.34f)),Math.min(255,g+Math.round((255-g)*0.34f)),Math.min(255,b+Math.round((255-b)*0.34f)));
+        int deep=Color.rgb(Math.max(0,r-10),Math.max(0,g-10),Math.max(0,b-10));
+        d.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
+        d.setColors(new int[]{light,color,deep});d.setCornerRadius(dp(20));d.setStroke(dp(1),stroke);return d;
     }
     private TextView proText(String value,int size,int color,boolean bold){
         TextView t=new TextView(this);t.setText(value);t.setTextSize(size);t.setTextColor(color);
@@ -212,7 +216,7 @@ public class MainActivity extends Activity {
         if(proDialog==null)return;
         selectedProProduct=selected;
         LinearLayout page=new LinearLayout(this);page.setOrientation(LinearLayout.VERTICAL);
-        page.setPadding(dp(18),dp(12),dp(18),dp(16));page.setBackgroundColor(Color.rgb(248,249,253));
+        page.setPadding(dp(18),dp(12),dp(18),dp(16));page.setBackground(proBg(Color.rgb(250,250,253),Color.rgb(255,255,255)));
         LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);
         TextView back=proText(screen==0?"✕":"‹  Kembali",15,Color.rgb(48,55,72),true);
         back.setPadding(dp(8),dp(10),dp(14),dp(10));back.setOnClickListener(v->{if(screen==0)proDialog.dismiss();else showProScreen(screen==1?0:screen==2?1:2,selectedProProduct);});
@@ -222,32 +226,35 @@ public class MainActivity extends Activity {
         top.addView(new View(this),new LinearLayout.LayoutParams(dp(42),dp(1)));page.addView(top);
         ScrollView scroll=new ScrollView(this);LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);body.setPadding(0,dp(8),0,dp(10));
         TextView hero=proText("♛  All Convert Pro\nLebih banyak fungsi. Lebih mudah.\nAkses premium untuk kerja harian anda.",18,Color.WHITE,true);
-        hero.setGravity(Gravity.CENTER);hero.setPadding(dp(18),dp(20),dp(18),dp(20));hero.setBackground(proBg(Color.rgb(255,139,0),Color.rgb(255,180,55)));
+        hero.setGravity(Gravity.CENTER);hero.setPadding(dp(18),dp(20),dp(18),dp(20));hero.setBackground(proBg(Color.rgb(255,139,0),Color.rgb(255,210,150)));hero.setElevation(dp(7));
         body.addView(hero,new LinearLayout.LayoutParams(-1,dp(132)));
         if(screen==0){
             TextView intro=proText("Pilih pelan yang sesuai",15,Color.rgb(35,43,60),true);intro.setPadding(dp(4),dp(16),0,dp(8));body.addView(intro);
-            for(String id:new String[]{PRO_SUBS[0],PRO_SUBS[1]}){
-                ProductDetails product=proProducts.get(id);String name=id.equals(PRO_SUBS[0])?"Bulanan":"Tahunan";
-                LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(14),dp(16),dp(14));card.setBackground(proBg(Color.WHITE,Color.rgb(239,174,110)));
-                TextView h=proText("All Convert Pro • "+name,16,Color.rgb(25,32,48),true);card.addView(h);
-                TextView price=proText(proPrice(product)+(id.equals(PRO_SUBS[0])?" / bulan":" / tahun"),20,Color.rgb(225,100,0),true);price.setPadding(0,dp(7),0,dp(6));card.addView(price);
-                addProFeature(card,"Akses semua fungsi Pro");addProFeature(card,"Tiada iklan");addProFeature(card,"History penukaran");addProFeature(card,"Sokongan premium");
-                Button choose=proButton("Pilih Pelan "+name,true);choose.setOnClickListener(v->{if(product==null){queryProProducts();Toast.makeText(this,"Pelan belum tersedia di Google Play. Cuba lagi selepas produk diaktifkan.",Toast.LENGTH_LONG).show();}else showProScreen(1,product);});
+            for(String id:new String[]{PRO_SUBS[0],PRO_SUBS[1],PRO_LIFETIME}){
+                ProductDetails product=proProducts.get(id);
+                boolean lifetime=id.equals(PRO_LIFETIME);
+                String name=lifetime?"Seumur Hidup":id.equals(PRO_SUBS[0])?"Bulanan":"Tahunan";
+                String suffix=lifetime?" • sekali bayar":id.equals(PRO_SUBS[0])?" / bulan":" / tahun";
+                LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(14),dp(16),dp(14));card.setBackground(proBg(Color.WHITE,Color.rgb(239,174,110)));card.setElevation(dp(4));
+                TextView h=proText("All Convert Pro • "+name,lifetime?17:16,Color.rgb(25,32,48),true);card.addView(h);
+                TextView price=proText(proPrice(product)+suffix,20,Color.rgb(225,100,0),true);price.setPadding(0,dp(7),0,dp(6));card.addView(price);
+                addProFeature(card,"Pengalaman tanpa iklan semasa Pro aktif");
+                addProFeature(card,"History sehingga 50 fail / 200 MB pada peranti");
+                addProFeature(card,"Pulihkan pembelian melalui Google Play");
+                Button choose=proButton(lifetime?"Beli Akses Seumur Hidup":"Pilih Pelan "+name,true);choose.setOnClickListener(v->{if(product==null){queryProProducts();Toast.makeText(this,"Pelan belum tersedia di Google Play. Pastikan produk dan negara jualan telah diaktifkan.",Toast.LENGTH_LONG).show();}else showProScreen(1,product);});
                 LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.topMargin=dp(10);body.addView(card,cp);card.addView(choose);
                 LinearLayout.LayoutParams gap=new LinearLayout.LayoutParams(-1,dp(12));body.addView(new View(this),gap);
             }
-            TextView note=proText("Harga sebenar dipaparkan oleh Google Play semasa pembelian. Pelan dan pembayaran TNG hanya akan diaktifkan selepas kelulusan serta integrasi rasmi.",12,Color.rgb(105,112,128),false);note.setPadding(dp(4),dp(6),dp(4),dp(8));body.addView(note);
+            TextView note=proText("Semua pembelian diproses oleh Google Play. Harga dan mata wang dipaparkan mengikut negara akaun Google Play anda. Langganan boleh diurus atau dibatalkan melalui Google Play.",12,Color.rgb(105,112,128),false);note.setPadding(dp(4),dp(6),dp(4),dp(8));body.addView(note);
             Button status=proButton("Lihat Status Langganan",false);status.setOnClickListener(v->showProScreen(2,null));body.addView(status);
         }else if(screen==1){
             TextView detail=proText("Pelan dipilih: "+(selected==null?"All Convert Pro":selected.getName())+"\nHarga: "+proPrice(selected),15,Color.rgb(35,43,60),true);
             detail.setPadding(dp(16),dp(16),dp(16),dp(16));detail.setBackground(proBg(Color.WHITE,Color.rgb(225,231,240)));body.addView(detail);
-            TextView methods=proText("Kaedah Pembayaran",16,Color.rgb(30,38,55),true);methods.setPadding(dp(4),dp(18),0,dp(8));body.addView(methods);
-            TextView tng=proText("Touch ’n Go eWallet\nAkan datang • menunggu kelulusan merchant/API",14,Color.rgb(30,60,120),true);
-            tng.setPadding(dp(16),dp(16),dp(16),dp(16));tng.setBackground(proBg(Color.WHITE,Color.rgb(205,220,248)));body.addView(tng);
-            TextView google=proText("Google Play\nPembayaran selamat melalui Google Play",14,Color.rgb(35,43,60),true);
-            google.setPadding(dp(16),dp(16),dp(16),dp(16));google.setBackground(proBg(Color.WHITE,Color.rgb(239,174,110)));LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(-1,-2);gp.topMargin=dp(10);body.addView(google,gp);
+            TextView methods=proText("Pembayaran melalui Google Play",16,Color.rgb(30,38,55),true);methods.setPadding(dp(4),dp(18),0,dp(8));body.addView(methods);
+            TextView google=proText("Google Play\nPembelian selamat menggunakan kaedah pembayaran yang tersedia untuk negara akaun anda. Harga dipaparkan dalam mata wang tempatan oleh Google Play.",14,Color.rgb(35,43,60),true);
+            google.setPadding(dp(16),dp(16),dp(16),dp(16));google.setBackground(proBg(Color.WHITE,Color.rgb(239,174,110)));google.setElevation(dp(3));LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(-1,-2);gp.topMargin=dp(4);body.addView(google,gp);
             Button pay=proButton("Teruskan dengan Google Play",true);pay.setOnClickListener(v->{if(selected!=null){proDialog.dismiss();launchProPurchase(selected);}else Toast.makeText(this,"Sila pilih pelan dahulu.",Toast.LENGTH_SHORT).show();});LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=dp(16);body.addView(pay,pp);
-            TextView legal=proText("TNG belum boleh menerima bayaran dalam aplikasi ini. Kami tidak akan menandakan akaun Pro aktif sehingga transaksi disahkan.",12,Color.rgb(105,112,128),false);legal.setPadding(dp(4),dp(12),dp(4),0);body.addView(legal);
+            TextView legal=proText("Akses Pro hanya diaktifkan selepas Google Play mengesahkan pembelian. Langganan bulanan dan tahunan diperbaharui secara automatik mengikut terma Google Play; pelan seumur hidup ialah bayaran sekali sahaja.",12,Color.rgb(105,112,128),false);legal.setPadding(dp(4),dp(12),dp(4),0);body.addView(legal);
         }else if(screen==2||screen==3||screen==4){
             if(screen==3){
                 TextView success=proText("✓\nPembayaran Berjaya!\nAll Convert Pro telah diaktifkan selepas pengesahan Google Play.",18,Color.rgb(25,130,75),true);success.setGravity(Gravity.CENTER);success.setPadding(dp(12),dp(24),dp(12),dp(24));success.setBackground(proBg(Color.rgb(235,251,242),Color.rgb(160,225,185)));body.addView(success);

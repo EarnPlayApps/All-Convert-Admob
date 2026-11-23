@@ -278,7 +278,7 @@ public class MainActivity extends Activity {
             TextView google=proText("Google Play\nPembelian selamat menggunakan kaedah pembayaran yang tersedia untuk negara akaun anda. Harga dipaparkan dalam mata wang tempatan oleh Google Play.",14,Color.rgb(221,229,245),true);
             google.setPadding(dp(16),dp(16),dp(16),dp(16));google.setBackground(proBg(Color.rgb(12,18,33),Color.rgb(59,76,120)));google.setElevation(dp(3));LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(-1,-2);gp.topMargin=dp(4);body.addView(google,gp);
             Button pay=proButton("Teruskan dengan Google Play",true);pay.setOnClickListener(v->{if(selected!=null){proDialog.dismiss();launchProPurchase(selected);}else Toast.makeText(this,"Sila pilih pelan dahulu.",Toast.LENGTH_SHORT).show();});LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=dp(16);body.addView(pay,pp);
-            TextView legal=proText("Akses Pro hanya diaktifkan selepas Google Play mengesahkan pembelian. Langganan bulanan dan tahunan diperbaharui secara automatik mengikut terma Google Play; pelan seumur hidup ialah bayaran sekali sahaja.",12,Color.rgb(105,112,128),false);legal.setPadding(dp(4),dp(12),dp(4),0);body.addView(legal);
+            TextView legal=proText("Akses Pro hanya diaktifkan selepas Google Play mengesahkan pembelian. Langganan bulanan dan tahunan diperbaharui secara automatik mengikut terma Google Play; pelan seumur hidup ialah bayaran sekali sahaja.",12,Color.rgb(166,180,207),false);legal.setPadding(dp(4),dp(12),dp(4),0);body.addView(legal);
         }else if(screen==2||screen==3||screen==4){
             if(screen==3){
                 TextView success=proText("✓\nPembayaran Berjaya!\nAll Convert Pro telah diaktifkan selepas pengesahan Google Play.",18,Color.rgb(98,227,160),true);success.setGravity(Gravity.CENTER);success.setPadding(dp(12),dp(24),dp(12),dp(24));success.setBackground(proBg(Color.rgb(18,58,49),Color.rgb(47,143,112)));body.addView(success);
@@ -286,7 +286,7 @@ public class MainActivity extends Activity {
             }else{
                 TextView status=proText(isPro?"●  All Convert Pro — AKTIF":"○  All Convert Pro — BELUM AKTIF",17,isPro?Color.rgb(20,145,80):Color.rgb(105,112,128),true);
                 status.setPadding(dp(16),dp(18),dp(16),dp(18));status.setBackground(proBg(Color.rgb(18,27,45),Color.rgb(59,76,120)));body.addView(status);
-                TextView details=proText(isPro?"Akses Pro tersedia pada peranti ini.\nStatus akan disemak semula melalui Google Play.":"Tiada pembelian Pro aktif ditemui.\nPulihkan pembelian untuk menyemak semula transaksi terdahulu.",14,Color.rgb(55,65,82),false);details.setPadding(dp(8),dp(14),dp(8),dp(14));body.addView(details);
+                TextView details=proText(isPro?"Akses Pro tersedia pada peranti ini.\nStatus akan disemak semula melalui Google Play.":"Tiada pembelian Pro aktif ditemui.\nPulihkan pembelian untuk menyemak semula transaksi terdahulu.",14,Color.rgb(190,202,225),false);details.setPadding(dp(8),dp(14),dp(8),dp(14));body.addView(details);
                 Button restore=proButton("Pulihkan Pembelian",false);restore.setOnClickListener(v->{queryProPurchases();Toast.makeText(this,"Sedang menyemak pembelian Google Play…",Toast.LENGTH_SHORT).show();});body.addView(restore);
                 Button manage=proButton("Pengurusan / Batal Langganan",false);manage.setOnClickListener(v->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/account/subscriptions?package=com.allconvert.app")));}catch(Exception e){Toast.makeText(this,"Halaman langganan Google Play tidak dapat dibuka.",Toast.LENGTH_SHORT).show();}});LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);mp.topMargin=dp(8);body.addView(manage,mp);
             }
@@ -596,7 +596,8 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams headerLp=new LinearLayout.LayoutParams(-1,-2);
         headerLp.bottomMargin=dp(15);
         panel.addView(header,headerLp);
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Tetapan").setView(panel).setNegativeButton("Tutup",null).create();
+        ScrollView settingsScroll=new ScrollView(this);settingsScroll.setFillViewport(true);settingsScroll.setBackgroundColor(Color.rgb(7,11,24));settingsScroll.addView(panel,new ScrollView.LayoutParams(-1,-2));
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Tetapan").setView(settingsScroll).setNegativeButton("Tutup",null).create();
         addInfoRow(panel,"Langganan Pro","Buka ciri premium dan History",()->{dialog.dismiss();showProPlansDialog();});
         if(!isPro)addInfoRow(panel,"Tonton Iklan Rewarded","Tonton video untuk langkau iklan sela seterusnya",()->{dialog.dismiss();showRewardedIfReady();});
         addInfoRow(panel,"Pulihkan Pembelian","Semak semula langganan atau pembelian terdahulu",()->{dialog.dismiss();queryProPurchases();Toast.makeText(this,"Sedang menyemak pembelian Google Play…",Toast.LENGTH_SHORT).show();});
@@ -607,7 +608,8 @@ public class MainActivity extends Activity {
             addInfoRow(panel,"Tetapan Privasi Iklan","Urus persetujuan dan pilihan iklan Google",()->{dialog.dismiss();showPrivacyOptions();});
         }
         dialog.show();
-        if(dialog.getWindow()!=null)dialog.getWindow().setLayout(-1,-2);
+        if(dialog.getWindow()!=null){dialog.getWindow().setBackgroundDrawable(proBg(Color.rgb(7,11,24),Color.rgb(32,44,71)));dialog.getWindow().setLayout(-1,Math.min(getResources().getDisplayMetrics().heightPixels-dp(72),dp(620)));}
+        if(dialog.getButton(AlertDialog.BUTTON_NEGATIVE)!=null)dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(Color.rgb(34,207,238));
     }
 
     private void addInfoRow(LinearLayout parent,String title,String subtitle,Runnable action){

@@ -220,7 +220,7 @@ jobs:
               pos = h.lower().rfind("</body>")
               if pos < 0:
                   raise SystemExit("FAIL: HTML body closing tag missing for language support")
-              h = h[:pos] + tag + "\\n" + h[pos:]
+              h = h[:pos] + tag + "\n" + h[pos:]
               p.write_text(h, encoding="utf-8")
           if 'id="ac-language-select"' not in Path("app/src/main/assets/i18n.js").read_text(encoding="utf-8"):
               raise SystemExit("FAIL: language selector script incomplete")

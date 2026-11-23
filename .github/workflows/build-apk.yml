@@ -103,11 +103,11 @@ jobs:
 </script>"""
           if promo_script not in h:
               raise SystemExit("FAIL: misplaced promotion script block not found exactly")
-          h = h.replace(promo_script + "\\n\\n</body></html>", "</body></html>", 1)
-          promo_anchor = '</section>\\n<h2 style="font-size:17px;margin:18px 2px 8px;color:#fff">Pilih cara penggunaan</h2>'
+          h = h.replace(promo_script + "\n\n</body></html>", "</body></html>", 1)
+          promo_anchor = '</section>\n<h2 style="font-size:17px;margin:18px 2px 8px;color:#fff">Pilih cara penggunaan</h2>'
           if promo_anchor not in h:
               raise SystemExit("FAIL: home promotion insertion point not found")
-          h = h.replace(promo_anchor, '</section>\\n' + promo_script + '\\n<h2 style="font-size:17px;margin:18px 2px 8px;color:#fff">Pilih cara penggunaan</h2>', 1)
+          h = h.replace(promo_anchor, '</section>\n' + promo_script + '\n<h2 style="font-size:17px;margin:18px 2px 8px;color:#fff">Pilih cara penggunaan</h2>', 1)
           if h.count("const endpoint='https://hckvehpkzwyerkwpdvlz.supabase.co/functions/v1/allconvert-promotions';") != 1:
               raise SystemExit("FAIL: promotion script must exist exactly once in the main page")
           if "b=new Blob([`<!doctype html><html><head><meta charset=\"utf-8\"><title>Converted DOCX</title></head><body>${h}</body></html>`]" not in h:

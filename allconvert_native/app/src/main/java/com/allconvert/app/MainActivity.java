@@ -696,20 +696,21 @@ public class MainActivity extends Activity {
         if(dialog.getWindow()!=null)dialog.getWindow().setLayout(-1,dp(560));
     }
 
+    private boolean allowFreeResultAction(){
+        if(isPro)return true;
+        SharedPreferences prefs=getSharedPreferences("all_convert_free_download",MODE_PRIVATE);
+        if(prefs.getBoolean("used_for_current_result",false)){
+            runOnUiThread(()->Toast.makeText(this,"Had muat turun untuk hasil Free ini telah digunakan. Langgan Pro untuk History dan muat turun semula.",Toast.LENGTH_LONG).show());
+            return false;
+        }
+        prefs.edit().putBoolean("used_for_current_result",true).apply();
+        runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertLockResultActions&&window.__allConvertLockResultActions()",null);});
+        return true;
+        }
+
     private class AndroidBridge{
         @JavascriptInterface public void setLanguagePack(String language,String json){try{JSONObject pack=new JSONObject(json==null?"{}":json);JSONObject local=pack.optJSONObject("translations"),english=pack.optJSONObject("english");Map<String,String> lm=new HashMap<>(),em=new HashMap<>();if(local!=null){java.util.Iterator<String> it=local.keys();while(it.hasNext()){String k=it.next();lm.put(k,local.optString(k,k));}}if(english!=null){java.util.Iterator<String> it=english.keys();while(it.hasNext()){String k=it.next();em.put(k,english.optString(k,k));}}appLanguage=language==null?"en":language;nativeTranslations=lm;englishTranslations=em;getSharedPreferences("all_convert_language",MODE_PRIVATE).edit().putString("language",appLanguage).apply();}catch(Exception ignored){}}
         @JavascriptInterface public void recordConverted(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);if(data.length>0)recordHistory(name,type,data);}
-        private boolean allowFreeResultAction(){
-            if(isPro)return true;
-            SharedPreferences prefs=getSharedPreferences("all_convert_free_download",MODE_PRIVATE);
-            if(prefs.getBoolean("used_for_current_result",false)){
-                runOnUiThread(()->Toast.makeText(MainActivity.this,"Had muat turun untuk hasil Free ini telah digunakan. Langgan Pro untuk History dan muat turun semula.",Toast.LENGTH_LONG).show());
-                return false;
-            }
-            prefs.edit().putBoolean("used_for_current_result",true).apply();
-            runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertLockResultActions&&window.__allConvertLockResultActions()",null);});
-            return true;
-        }
         @JavascriptInterface public void conversionCompleted(){
             getSharedPreferences("all_convert_free_download",MODE_PRIVATE).edit().putBoolean("used_for_current_result",false).apply();
             runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertUnlockResultActions&&window.__allConvertUnlockResultActions()",null);if(!isPro){conversionCount++;getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putInt(PREF_CONVERSION_COUNT,conversionCount).apply();if(conversionCount%5==0)showInterstitialIfReady();}});
@@ -746,8 +747,16 @@ public class MainActivity extends Activity {
         String html=prepareHtmlPreview(data);
         preview.loadDataWithBaseURL("https://allconvert.local/",html,"text/html","UTF-8",null);
         root.addView(preview,new LinearLayout.LayoutParams(-1,0,1));
-        TextView previewHint=new TextView(this); previewHint.setText(tx("Preview • Tekan Tutup untuk kembali ke hasil.")); previewHint.setTextColor(Color.rgb(185,197,220)); previewHint.setTextSize(12); previewHint.setPadding(dp(4),dp(6),dp(4),dp(6)); root.addView(previewHint,new LinearLayout.LayoutParams(-1,-2));
+        LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL); actions.setGravity(Gravity.CENTER); actions.setPadding(0,dp(8),0,0);
+        Button download=new Button(this); download.setText(tx("Download")); download.setAllCaps(false);
+        Button save=new Button(this); save.setText(tx("Save As")); save.setAllCaps(false);
+        Button share=new Button(this); share.setText(tx("Share")); share.setAllCaps(false);
+        actions.addView(download,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(save,new LinearLayout.LayoutParams(0,dp(44),1)); actions.addView(share,new LinearLayout.LayoutParams(0,dp(44),1));
+        root.addView(actions,new LinearLayout.LayoutParams(-1,dp(52)));
         final AlertDialog dialog=new AlertDialog.Builder(this).setTitle(tx("HTML Preview")).setView(root).setNegativeButton(tx("Tutup"),null).create();
+        download.setOnClickListener(v->{if(!allowFreeResultAction())return;dialog.dismiss();saveDownload(n,m,data);});
+        save.setOnClickListener(v->{if(!allowFreeResultAction())return;dialog.dismiss();pendingBytes=data;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(m);i.putExtra(Intent.EXTRA_TITLE,n);try{startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}catch(Exception e){pendingBytes=null;Toast.makeText(this,tx("Tidak dapat membuka lokasi simpan."),Toast.LENGTH_LONG).show();}});
+        share.setOnClickListener(v->{if(!allowFreeResultAction())return;dialog.dismiss();shareOrOpen(n,m,data);});
         dialog.setOnDismissListener(v->preview.destroy());
         dialog.show();
     }

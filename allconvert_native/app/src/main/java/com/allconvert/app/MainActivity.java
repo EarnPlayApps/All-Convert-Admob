@@ -60,7 +60,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Base64;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -299,7 +298,7 @@ public class MainActivity extends Activity {
         EditText password=new EditText(this);password.setSingleLine(true);password.setHint("Kata laluan");password.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);panel.addView(password);
         AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Akaun All Convert Cloud").setMessage("Log masuk atau daftar akaun untuk menyimpan History Pro dalam cloud dan memulihkannya pada telefon lain.").setView(panel).setPositiveButton("Log Masuk",null).setNeutralButton("Daftar Akaun",null).setNegativeButton("History Peranti",null).create();
         dialog.setOnShowListener(v->{
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<6){Toast.makeText(this,"Masukkan e-mel dan kata laluan sekurang-kurangnya 6 aksara.",Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,false);});
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<8){Toast.makeText(this,"Masukkan e-mel dan kata laluan sekurang-kurangnya 8 aksara.",Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,false);});
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(x->{String e=email.getText().toString().trim(),p=password.getText().toString();if(e.isEmpty()||p.length()<6){Toast.makeText(this,"Masukkan e-mel dan kata laluan sekurang-kurangnya 6 aksara.",Toast.LENGTH_LONG).show();return;}dialog.dismiss();authenticateCloud(e,p,true);});
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(x->{dialog.dismiss();showLocalHistoryDialog();});
         });dialog.show();
@@ -538,7 +537,7 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void openWith(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);openFile(name,type,data);}
         @JavascriptInterface public void showRewarded(){runOnUiThread(MainActivity.this::showRewardedIfReady);}
     }
-    private byte[] dec(String s){try{return Base64.getDecoder().decode(s);}catch(Exception e){return new byte[0];}}
+    private byte[] dec(String s){try{return android.util.Base64.decode(s,android.util.Base64.DEFAULT);}catch(Exception e){return new byte[0];}}
     private String safe(String s){return s==null||s.isEmpty()?"converted_file":s.replaceAll("[\r\n\\/:*?\"<>|]","_");}
     private String mime(String s){return s==null||s.isEmpty()?"application/octet-stream":s;}
 
@@ -619,7 +618,7 @@ public class MainActivity extends Activity {
         if(x==null)return;String a=x.getAction();Uri u=x.getData();
         if(Intent.ACTION_SEND.equals(a)){if(x.getClipData()!=null&&x.getClipData().getItemCount()>0)u=x.getClipData().getItemAt(0).getUri();else if(x.getParcelableExtra(Intent.EXTRA_STREAM)!=null)u=(Uri)x.getParcelableExtra(Intent.EXTRA_STREAM);}
         if(u==null||!(Intent.ACTION_VIEW.equals(a)||Intent.ACTION_SEND.equals(a)))return;
-        try{byte[] d=read(u);String n=u.getLastPathSegment();if(n==null||n.isEmpty())n="shared_file";String m=getContentResolver().getType(u);String b=Base64.getEncoder().encodeToString(d);
+        try{byte[] d=read(u);String n=u.getLastPathSegment();if(n==null||n.isEmpty())n="shared_file";String m=getContentResolver().getType(u);String b=android.util.Base64.encodeToString(d,android.util.Base64.NO_WRAP);
             String js="window.__allConvertIncoming&&window.__allConvertIncoming("+q(n)+","+q(mime(m))+",'"+b+"')";webView.evaluateJavascript(js,null);
         }catch(Exception ignored){}
     }

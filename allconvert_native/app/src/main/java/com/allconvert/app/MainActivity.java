@@ -269,7 +269,7 @@ public class MainActivity extends Activity {
                 LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.topMargin=dp(10);body.addView(card,cp);card.addView(choose);
                 LinearLayout.LayoutParams gap=new LinearLayout.LayoutParams(-1,dp(12));body.addView(new View(this),gap);
             }
-            TextView note=proText("Semua pembelian diproses oleh Google Play. Harga dan mata wang dipaparkan mengikut negara akaun Google Play anda. Langganan boleh diurus atau dibatalkan melalui Google Play.",12,Color.rgb(105,112,128),false);note.setPadding(dp(4),dp(6),dp(4),dp(8));body.addView(note);
+            TextView note=proText("Semua pembelian diproses oleh Google Play. Harga dan mata wang dipaparkan mengikut negara akaun Google Play anda. Langganan boleh diurus atau dibatalkan melalui Google Play.",12,Color.rgb(174,185,209),false);note.setPadding(dp(4),dp(6),dp(4),dp(8));body.addView(note);
             Button status=proButton("Lihat Status Langganan",false);status.setOnClickListener(v->showProScreen(2,null));body.addView(status);
         }else if(screen==1){
             TextView detail=proText("Pelan dipilih: "+(selected==null?"All Convert Pro":selected.getName())+"\nHarga: "+proPrice(selected),15,Color.WHITE,true);
@@ -281,11 +281,11 @@ public class MainActivity extends Activity {
             TextView legal=proText("Akses Pro hanya diaktifkan selepas Google Play mengesahkan pembelian. Langganan bulanan dan tahunan diperbaharui secara automatik mengikut terma Google Play; pelan seumur hidup ialah bayaran sekali sahaja.",12,Color.rgb(105,112,128),false);legal.setPadding(dp(4),dp(12),dp(4),0);body.addView(legal);
         }else if(screen==2||screen==3||screen==4){
             if(screen==3){
-                TextView success=proText("✓\nPembayaran Berjaya!\nAll Convert Pro telah diaktifkan selepas pengesahan Google Play.",18,Color.rgb(25,130,75),true);success.setGravity(Gravity.CENTER);success.setPadding(dp(12),dp(24),dp(12),dp(24));success.setBackground(proBg(Color.rgb(235,251,242),Color.rgb(160,225,185)));body.addView(success);
+                TextView success=proText("✓\nPembayaran Berjaya!\nAll Convert Pro telah diaktifkan selepas pengesahan Google Play.",18,Color.rgb(98,227,160),true);success.setGravity(Gravity.CENTER);success.setPadding(dp(12),dp(24),dp(12),dp(24));success.setBackground(proBg(Color.rgb(18,58,49),Color.rgb(47,143,112)));body.addView(success);
                 Button done=proButton("Selesai",true);done.setOnClickListener(v->proDialog.dismiss());body.addView(done);
             }else{
                 TextView status=proText(isPro?"●  All Convert Pro — AKTIF":"○  All Convert Pro — BELUM AKTIF",17,isPro?Color.rgb(20,145,80):Color.rgb(105,112,128),true);
-                status.setPadding(dp(16),dp(18),dp(16),dp(18));status.setBackground(proBg(Color.WHITE,Color.rgb(225,231,240)));body.addView(status);
+                status.setPadding(dp(16),dp(18),dp(16),dp(18));status.setBackground(proBg(Color.rgb(18,27,45),Color.rgb(59,76,120)));body.addView(status);
                 TextView details=proText(isPro?"Akses Pro tersedia pada peranti ini.\nStatus akan disemak semula melalui Google Play.":"Tiada pembelian Pro aktif ditemui.\nPulihkan pembelian untuk menyemak semula transaksi terdahulu.",14,Color.rgb(55,65,82),false);details.setPadding(dp(8),dp(14),dp(8),dp(14));body.addView(details);
                 Button restore=proButton("Pulihkan Pembelian",false);restore.setOnClickListener(v->{queryProPurchases();Toast.makeText(this,"Sedang menyemak pembelian Google Play…",Toast.LENGTH_SHORT).show();});body.addView(restore);
                 Button manage=proButton("Pengurusan / Batal Langganan",false);manage.setOnClickListener(v->{try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/account/subscriptions?package=com.allconvert.app")));}catch(Exception e){Toast.makeText(this,"Halaman langganan Google Play tidak dapat dibuka.",Toast.LENGTH_SHORT).show();}});LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);mp.topMargin=dp(8);body.addView(manage,mp);

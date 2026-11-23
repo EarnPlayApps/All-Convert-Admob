@@ -550,7 +550,7 @@ public class MainActivity extends Activity {
         LinearLayout panel=new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(18),dp(14),dp(18),dp(8));
-        panel.setBackgroundColor(Color.WHITE);
+        panel.setBackground(proBg(Color.rgb(255,253,249),Color.rgb(255,255,255)));
         TextView heading=new TextView(this);
         heading.setText("Tetapan All Convert");
         heading.setTextSize(21);
@@ -585,10 +585,12 @@ public class MainActivity extends Activity {
         row.setLineSpacing(dp(2),1f);
         row.setPadding(dp(15),dp(13),dp(15),dp(13));
         android.graphics.drawable.GradientDrawable bg=new android.graphics.drawable.GradientDrawable();
-        bg.setColor(Color.rgb(247,249,253));
-        bg.setCornerRadius(dp(14));
-        bg.setStroke(dp(1),Color.rgb(226,232,242));
+        bg.setOrientation(android.graphics.drawable.GradientDrawable.Orientation.TL_BR);
+        bg.setColors(new int[]{Color.WHITE,Color.rgb(255,248,240)});
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(1),Color.rgb(245,230,214));
         row.setBackground(bg);
+        row.setElevation(dp(3));
         row.setClickable(true);
         row.setFocusable(true);
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);

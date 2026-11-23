@@ -3,13 +3,12 @@
  android:layout_width="match_parent"
  android:layout_height="match_parent"
  android:orientation="vertical"
- android:background="#FFFCF8">
-<FrameLayout android:id="@+id/bannerContainer" android:layout_width="match_parent" android:layout_height="0dp" android:visibility="gone" android:gravity="center" android:background="#FFFFFBF7"/>
-<LinearLayout android:layout_width="match_parent" android:layout_height="50dp" android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="14dp" android:paddingEnd="14dp" android:background="#FFFFFEFC" android:elevation="3dp">
-<TextView android:id="@+id/historyEntry" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:paddingStart="14dp" android:paddingEnd="14dp" android:text="History" android:textColor="#D9680B" android:textSize="13sp" android:textStyle="bold" android:visibility="gone" android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground"/>
-<View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1"/>
-<TextView android:id="@+id/settingsEntry" android:layout_width="wrap_content" android:layout_height="match_parent" android:gravity="center" android:paddingStart="14dp" android:paddingEnd="14dp" android:text="Tetapan  ›" android:textColor="#D9680B" android:textSize="13sp" android:textStyle="bold" android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground"/>
+ android:background="#FF070B18">
+<LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:visibility="gone">
+<TextView android:id="@+id/historyEntry" android:layout_width="wrap_content" android:layout_height="1dp" android:text="History" android:visibility="gone"/>
+<TextView android:id="@+id/settingsEntry" android:layout_width="wrap_content" android:layout_height="1dp" android:text="Tetapan"/>
 </LinearLayout>
-<WebView android:id="@+id/webView" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="#FFFCF8"/>
-<FrameLayout android:id="@+id/nativeAdContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:background="#FFFFFBF7" android:padding="0dp"/>
+<WebView android:id="@+id/webView" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="#FF070B18"/>
+<FrameLayout android:id="@+id/nativeAdContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:background="#FF0B1430" android:padding="0dp"/>
+<FrameLayout android:id="@+id/bannerContainer" android:layout_width="match_parent" android:layout_height="0dp" android:visibility="gone" android:gravity="center" android:background="#FF0B1430"/>
 </LinearLayout>

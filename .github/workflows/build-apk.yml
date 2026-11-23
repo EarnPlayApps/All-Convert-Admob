@@ -159,6 +159,29 @@ jobs:
           grep -q 'ca-app-pub-9940728659432865/6537570257' app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q 'ca-app-pub-9940728659432865/5224488586' app/src/main/java/com/allconvert/app/MainActivity.java
           grep -q 'ca-app-pub-9940728659432865/1006961841' app/src/main/java/com/allconvert/app/MainActivity.java
+          python3 - <<'PY'
+          import re, subprocess
+          from pathlib import Path
+          html = Path("app/src/main/assets/index.html").read_text(encoding="utf-8")
+          opened = len(re.findall(r"<script\b", html, flags=re.I))
+          closed = len(re.findall(r"</script\s*>", html, flags=re.I))
+          if opened != closed:
+              raise SystemExit(f"FAIL: script tags unbalanced ({opened} open / {closed} close)")
+          required = ["htmlToPDF(", "htmlToText(", "extractPDFText(", "async function downloadBlob(", "conversionCompleted"]
+          missing = [x for x in required if x not in html]
+          if missing:
+              raise SystemExit("FAIL: missing conversion fixes: " + ", ".join(missing))
+          scripts = re.findall(r"<script\b[^>]*>(.*?)</script\s*>", html, flags=re.I | re.S)
+          checked = 0
+          for index, script in enumerate(scripts):
+              if not script.strip():
+                  continue
+              path = Path(f"/tmp/allconvert-inline-{index}.js")
+              path.write_text(script, encoding="utf-8")
+              subprocess.run(["node", "--check", str(path)], check=True)
+              checked += 1
+          print(f"Inline JavaScript syntax verified: {checked} scripts; HTML scripts balanced.")
+          PY
           echo "HTML asset and native AdMob IDs verified: $ACTUAL bytes"
 
       - name: Audit conversion quality engine

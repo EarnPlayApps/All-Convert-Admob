@@ -88,6 +88,7 @@ public class MainActivity extends Activity {
     private static final long APP_OPEN_COOLDOWN_MS=300000L;
     private static final String PREFS_ADS="all_convert_ads";
     private static final String PREF_LAST_APP_OPEN="last_app_open_shown";
+    private static final String PREF_CONVERSION_COUNT="conversion_count";
 
     private WebView webView; private AdView adView; private NativeAd nativeAd; private ConsentInformation consentInformation; private TextView settingsEntry, historyEntry; private BillingClient billingClient; private final Map<String,ProductDetails> proProducts=new HashMap<>(); private volatile boolean isPro=false; private boolean adsInitialized=false; private android.widget.FrameLayout bannerContainer; private FrameLayout nativeContainer; private Button rewardButton; private boolean bannerLoaded=false; private volatile String currentAdPage="home";
     private ValueCallback<Uri[]> filePathCallback; private byte[] pendingBytes;
@@ -96,7 +97,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle b){
         super.onCreate(b); setContentView(R.layout.activity_main);
-        lastAppOpenShown=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getLong(PREF_LAST_APP_OPEN,0L);
+        lastAppOpenShown=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getLong(PREF_LAST_APP_OPEN,0L);conversionCount=getSharedPreferences(PREFS_ADS,MODE_PRIVATE).getInt(PREF_CONVERSION_COUNT,0);
         webView=findViewById(R.id.webView); bannerContainer=findViewById(R.id.bannerContainer); nativeContainer=findViewById(R.id.nativeAdContainer); settingsEntry=findViewById(R.id.settingsEntry); historyEntry=findViewById(R.id.historyEntry); rewardButton=null;
         settingsEntry.setOnClickListener(v->showSettingsDialog());
         historyEntry.setOnClickListener(v->showHistoryDialog());
@@ -255,7 +256,7 @@ public class MainActivity extends Activity {
                 TextView h=proText("All Convert Pro • "+name,lifetime?17:16,Color.rgb(25,32,48),true);card.addView(h);
                 TextView price=proText(proPrice(product)+suffix,20,Color.rgb(225,100,0),true);price.setPadding(0,dp(7),0,dp(6));card.addView(price);
                 addProFeature(card,"Pengalaman tanpa iklan semasa Pro aktif");
-                addProFeature(card,"History sehingga 50 fail / 200 MB pada peranti");
+                addProFeature(card,"History sehingga 50 fail / 200 MB keseluruhan (maksimum 50 MB setiap fail)");
                 addProFeature(card,"Pulihkan pembelian melalui Google Play");
                 Button choose=proButton(lifetime?"Beli Akses Seumur Hidup":"Pilih Pelan "+name,true);choose.setOnClickListener(v->{if(product==null){queryProProducts();Toast.makeText(this,"Pelan belum tersedia di Google Play. Pastikan produk dan negara jualan telah diaktifkan.",Toast.LENGTH_LONG).show();}else showProScreen(1,product);});
                 LinearLayout.LayoutParams cp=new LinearLayout.LayoutParams(-1,-2);cp.topMargin=dp(10);body.addView(card,cp);card.addView(choose);
@@ -639,7 +640,7 @@ public class MainActivity extends Activity {
 
     private class AndroidBridge{
         @JavascriptInterface public void recordConverted(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);if(data.length>0)recordHistory(name,type,data);}
-        @JavascriptInterface public void conversionCompleted(){if(!isPro)runOnUiThread(()->{conversionCount++;if(conversionCount%5==0)showInterstitialIfReady();});}
+        @JavascriptInterface public void conversionCompleted(){if(!isPro)runOnUiThread(()->{conversionCount++;getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putInt(PREF_CONVERSION_COUNT,conversionCount).apply();if(conversionCount%5==0)showInterstitialIfReady();});}
         @JavascriptInterface public void download(String n,String m,String b){
             String name=safe(n); String type=mime(m); byte[] data=dec(b);
             if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}else{saveDownload(name,type,data);}
@@ -864,7 +865,7 @@ public class MainActivity extends Activity {
     @Override protected void onActivityResult(int r,int c,Intent d){
         super.onActivityResult(r,c,d);
         if(r==FILE_CHOOSER_REQUEST){if(filePathCallback==null)return;Uri[] z=null;if(c==RESULT_OK&&d!=null){if(d.getClipData()!=null){int n=d.getClipData().getItemCount();z=new Uri[n];for(int i=0;i<n;i++)z[i]=d.getClipData().getItemAt(i).getUri();}else if(d.getData()!=null)z=new Uri[]{d.getData()};}filePathCallback.onReceiveValue(z);filePathCallback=null;}
-        else if(r==SAVE_DOCUMENT_REQUEST){if(c==RESULT_OK&&d!=null&&d.getData()!=null&&pendingBytes!=null)try(OutputStream o=getContentResolver().openOutputStream(d.getData())){o.write(pendingBytes);}catch(Exception ignored){}pendingBytes=null;}
+        else if(r==SAVE_DOCUMENT_REQUEST){if(c==RESULT_OK&&d!=null&&d.getData()!=null&&pendingBytes!=null){byte[] bytes=pendingBytes;Uri target=d.getData();pendingBytes=null;new Thread(()->{try(OutputStream o=getContentResolver().openOutputStream(target)){if(o==null)throw new Exception("Lokasi simpan tidak tersedia.");o.write(bytes);o.flush();runOnUiThread(()->Toast.makeText(this,"Fail berjaya disimpan.",Toast.LENGTH_SHORT).show());}catch(Exception e){runOnUiThread(()->Toast.makeText(this,"Gagal menyimpan fail. Cuba lokasi lain.",Toast.LENGTH_LONG).show());}}).start();}else pendingBytes=null;}
     }
     @Override protected void onStart(){super.onStart();if(billingClientReady())queryProPurchases();if(firstSession){firstSession=false;return;}new android.os.Handler().postDelayed(()->showAppOpenIfReady(),800);}
     @Override protected void onNewIntent(Intent i){super.onNewIntent(i);setIntent(i);handleIncoming(i);}

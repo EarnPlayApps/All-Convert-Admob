@@ -90,15 +90,14 @@ jobs:
               h = h[:bad_start] + h[bad_end + len('</script>'):]
           promo_start = h.find('id="promoAnnouncement"')
           if promo_start < 0:
-              plans_marker = 'class="home-plans"'
-              plans_pos = h.find(plans_marker)
-              if plans_pos < 0:
-                  raise SystemExit("FAIL: home plans insertion point not found")
-              plans_tag = h.rfind('<div', 0, plans_pos)
-              if plans_tag < 0:
-                  raise SystemExit("FAIL: home plans container not found")
-              promo_card = '<section id="promoAnnouncement" class="home-intro" style="display:none;margin-top:12px;border-color:rgba(230,155,55,.45)!important"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><strong id="promoEyebrow" style="font-size:12px;letter-spacing:.04em">PENGUMUMAN</strong></div><h2 id="promoTitle" style="font-size:17px;font-weight:850;margin:0 0 6px"></h2><p id="promoMessage" class="home-sub" style="margin:0 0 8px"></p><p id="promoDates" style="font-size:11px;opacity:.78;margin:0"></p></section>\\n'
-              h = h[:plans_tag] + promo_card + h[plans_tag:]
+              body_pos = h.rfind('<body')
+              if body_pos < 0:
+                  raise SystemExit("FAIL: HTML body insertion point not found")
+              body_end = h.find('>', body_pos)
+              if body_end < 0:
+                  raise SystemExit("FAIL: HTML body tag is incomplete")
+              promo_card = '<section id="promoAnnouncement" style="display:none;margin:12px auto;padding:16px;max-width:720px;border:1px solid rgba(230,155,55,.45);border-radius:16px;background:#fff;color:#202633"><strong id="promoEyebrow" style="font-size:12px;letter-spacing:.04em">PENGUMUMAN</strong><h2 id="promoTitle" style="font-size:17px;font-weight:850;margin:8px 0 6px"></h2><p id="promoMessage" style="margin:0 0 8px"></p><p id="promoDates" style="font-size:11px;opacity:.78;margin:0"></p></section>\\n'
+              h = h[:body_end + 1] + promo_card + h[body_end + 1:]
               promo_start = h.find('id="promoAnnouncement"')
           promo_end = h.find('</section>', promo_start)
           if promo_end < 0:

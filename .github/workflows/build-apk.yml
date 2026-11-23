@@ -170,7 +170,7 @@ jobs:
           window.__allConvertSetPro=function(enabled){$("navHistory").style.display=enabled?"block":"none"};
           showPage("home");
           '''
-          anchor = '$("pickFileBtn").addEventListener("click"'
+          anchor = '$("downloadBtn").onclick=downloadResultFile;'
           if anchor not in h: raise SystemExit("FAIL: page navigation insertion point missing")
           h = h.replace(anchor, js_nav + anchor, 1)
           h = h.replace('window.__allConvertIncoming=function(name,mime,b64){try{', 'window.__allConvertIncoming=function(name,mime,b64){try{showPage("convert");', 1)

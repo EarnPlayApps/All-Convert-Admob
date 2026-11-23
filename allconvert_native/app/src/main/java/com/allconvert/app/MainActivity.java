@@ -166,7 +166,22 @@ public class MainActivity extends Activity {
         if(result.getResponseCode()==BillingClient.BillingResponseCode.OK){if(purchases!=null)hasValidProPurchase(result,purchases);queryProPurchases();}
         else if(result.getResponseCode()!=BillingClient.BillingResponseCode.USER_CANCELED)Toast.makeText(this,"Pembelian tidak berjaya. Cuba lagi.",Toast.LENGTH_LONG).show();
     }
-    private void setProState(boolean enabled){runOnUiThread(()->{isPro=enabled;if(historyEntry!=null)historyEntry.setVisibility(enabled?View.VISIBLE:View.GONE);if(enabled&&!cloudAccessToken.isEmpty())syncLocalHistoryToCloud();});}
+    private void setProState(boolean enabled){runOnUiThread(()->{
+        isPro=enabled;
+        if(historyEntry!=null)historyEntry.setVisibility(enabled?View.VISIBLE:View.GONE);
+        if(enabled){
+            adsInitialized=false;
+            if(bannerContainer!=null){bannerContainer.setVisibility(View.GONE);bannerContainer.removeAllViews();if(bannerContainer.getLayoutParams()!=null){bannerContainer.getLayoutParams().height=0;bannerContainer.requestLayout();}}
+            if(adView!=null){adView.destroy();adView=null;}bannerLoaded=false;
+            if(nativeContainer!=null){nativeContainer.setVisibility(View.GONE);nativeContainer.removeAllViews();}
+            if(nativeAd!=null){nativeAd.destroy();nativeAd=null;}
+            interstitialAd=null;rewardedAd=null;if(rewardButton!=null)rewardButton.setVisibility(View.GONE);
+            if(appOpenShowing)appOpenShowing=false;
+            if(!cloudAccessToken.isEmpty())syncLocalHistoryToCloud();
+        }else if(consentInformation!=null&&consentInformation.canRequestAds()){
+            initializeAds();
+        }
+    });}
     private boolean billingClientReady(){return billingClient!=null&&billingClient.isReady();}
     private android.app.Dialog proDialog;
     private ProductDetails selectedProProduct;
@@ -487,8 +502,8 @@ public class MainActivity extends Activity {
 
     private void showHistoryDialog(){
         if(!isPro){showProPlansDialog();return;}
-        if(cloudAccessToken==null||cloudAccessToken.isEmpty()){showCloudAccountDialog();return;}
-        loadCloudHistory();
+        showLocalHistoryDialog();
+        if(cloudAccessToken!=null&&!cloudAccessToken.isEmpty())syncLocalHistoryToCloud();
     }
     private void showHistoryItem(int index){
         JSONArray records=readHistory();JSONObject item=records.optJSONObject(index);if(item==null)return;
@@ -521,7 +536,7 @@ public class MainActivity extends Activity {
     }
 
     private void initializeAds(){
-        if(adsInitialized)return;
+        if(isPro||adsInitialized)return;
         adsInitialized=true;
         MobileAds.initialize(this,status->runOnUiThread(()->{
             showBanner(); loadInterstitial(); loadRewarded(); loadNative();
@@ -718,7 +733,7 @@ public class MainActivity extends Activity {
     private byte[] read(Uri u)throws Exception{try(InputStream i=getContentResolver().openInputStream(u);ByteArrayOutputStream o=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=i.read(b))>0)o.write(b,0,n);return o.toByteArray();}}
 
     private void showBanner(){
-        if(bannerContainer==null)return;
+        if(isPro||bannerContainer==null)return;
         bannerLoaded=false;
         bannerContainer.removeAllViews();
         bannerContainer.setVisibility(View.GONE);
@@ -747,17 +762,18 @@ public class MainActivity extends Activity {
         adView.loadAd(new AdRequest.Builder().build());
     }
 
-    private void loadInterstitial(){InterstitialAd.load(this,INTERSTITIAL_ID,new AdRequest.Builder().build(),new InterstitialAdLoadCallback(){
+    private void loadInterstitial(){if(isPro)return;InterstitialAd.load(this,INTERSTITIAL_ID,new AdRequest.Builder().build(),new InterstitialAdLoadCallback(){
         @Override public void onAdLoaded(InterstitialAd ad){interstitialAd=ad;ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){interstitialAd=null;loadInterstitial();}});}
         @Override public void onAdFailedToLoad(LoadAdError e){interstitialAd=null;}
     });}
-    private void showInterstitialIfReady(){long now=System.currentTimeMillis();if(now-lastInterstitialShown<180000L)return;if(skipNextInterstitial){skipNextInterstitial=false;webView.evaluateJavascript("window.__allConvertRewardedUsed&&window.__allConvertRewardedUsed()",null);loadInterstitial();return;}if(interstitialAd!=null && !appOpenShowing){lastInterstitialShown=now;interstitialAd.show(this);}else loadInterstitial();}
+    private void showInterstitialIfReady(){if(isPro)return;long now=System.currentTimeMillis();if(now-lastInterstitialShown<180000L)return;if(skipNextInterstitial){skipNextInterstitial=false;webView.evaluateJavascript("window.__allConvertRewardedUsed&&window.__allConvertRewardedUsed()",null);loadInterstitial();return;}if(interstitialAd!=null && !appOpenShowing){lastInterstitialShown=now;interstitialAd.show(this);}else loadInterstitial();}
 
-    private void loadRewarded(){RewardedAd.load(this,REWARDED_ID,new AdRequest.Builder().build(),new RewardedAdLoadCallback(){
+    private void loadRewarded(){if(isPro)return;RewardedAd.load(this,REWARDED_ID,new AdRequest.Builder().build(),new RewardedAdLoadCallback(){
         @Override public void onAdLoaded(RewardedAd ad){rewardedAd=ad;runOnUiThread(()->{if(rewardButton!=null)rewardButton.setVisibility(View.VISIBLE);});}
         @Override public void onAdFailedToLoad(LoadAdError e){rewardedAd=null;runOnUiThread(()->{if(rewardButton!=null)rewardButton.setVisibility(View.GONE);});}
     });}
     private void showRewardedIfReady(){
+        if(isPro)return;
         if(rewardedAd==null){loadRewarded();Toast.makeText(this,"Rewarded ad belum tersedia.",Toast.LENGTH_SHORT).show();return;}
         RewardedAd ad=rewardedAd; rewardedAd=null; if(rewardButton!=null)rewardButton.setVisibility(View.GONE);
         ad.setFullScreenContentCallback(new com.google.android.gms.ads.FullScreenContentCallback(){@Override public void onAdDismissedFullScreenContent(){loadRewarded();}});
@@ -765,6 +781,7 @@ public class MainActivity extends Activity {
     }
 
     private void loadNative(){
+        if(isPro)return;
         AdLoader loader=new AdLoader.Builder(this,NATIVE_ID).forNativeAd(ad->{if(nativeAd!=null)nativeAd.destroy();nativeAd=ad;renderNative(ad);})
             .withNativeAdOptions(new NativeAdOptions.Builder().build()).withAdListener(new AdListener(){}).build();
         loader.loadAd(new AdRequest.Builder().build());
@@ -809,7 +826,7 @@ public class MainActivity extends Activity {
         nativeContainer.addView(wrap); nativeContainer.setVisibility(View.VISIBLE);
     }
     private void showAppOpenIfReady(){
-        if(!adsInitialized || consentInformation==null || !consentInformation.canRequestAds())return;
+        if(isPro||!adsInitialized || consentInformation==null || !consentInformation.canRequestAds())return;
         if(appOpenShowing || System.currentTimeMillis()-lastAppOpenShown<APP_OPEN_COOLDOWN_MS)return;
         com.google.android.gms.ads.appopen.AppOpenAd.load(this,APP_OPEN_ID,new AdRequest.Builder().build(),new com.google.android.gms.ads.appopen.AppOpenAd.AppOpenAdLoadCallback(){
             @Override public void onAdLoaded(com.google.android.gms.ads.appopen.AppOpenAd ad){
@@ -830,7 +847,7 @@ public class MainActivity extends Activity {
         if(r==FILE_CHOOSER_REQUEST){if(filePathCallback==null)return;Uri[] z=null;if(c==RESULT_OK&&d!=null){if(d.getClipData()!=null){int n=d.getClipData().getItemCount();z=new Uri[n];for(int i=0;i<n;i++)z[i]=d.getClipData().getItemAt(i).getUri();}else if(d.getData()!=null)z=new Uri[]{d.getData()};}filePathCallback.onReceiveValue(z);filePathCallback=null;}
         else if(r==SAVE_DOCUMENT_REQUEST){if(c==RESULT_OK&&d!=null&&d.getData()!=null&&pendingBytes!=null)try(OutputStream o=getContentResolver().openOutputStream(d.getData())){o.write(pendingBytes);}catch(Exception ignored){}pendingBytes=null;}
     }
-    @Override protected void onStart(){super.onStart(); if(firstSession){firstSession=false;return;} new android.os.Handler().postDelayed(()->showAppOpenIfReady(),800);}
+    @Override protected void onStart(){super.onStart();if(billingClientReady())queryProPurchases();if(firstSession){firstSession=false;return;}new android.os.Handler().postDelayed(()->showAppOpenIfReady(),800);}
     @Override protected void onNewIntent(Intent i){super.onNewIntent(i);setIntent(i);handleIncoming(i);}
     @Override protected void onDestroy(){if(filePathCallback!=null){filePathCallback.onReceiveValue(null);filePathCallback=null;}if(billingClient!=null&&billingClient.isReady())billingClient.endConnection();if(adView!=null)adView.destroy();if(nativeAd!=null)nativeAd.destroy();if(webView!=null)webView.destroy();super.onDestroy();}
 }

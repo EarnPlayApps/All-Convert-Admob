@@ -168,7 +168,7 @@ public class MainActivity extends Activity {
     }
     private void setProState(boolean enabled){runOnUiThread(()->{
         isPro=enabled;
-        if(historyEntry!=null)historyEntry.setVisibility(View.GONE);
+        if(historyEntry!=null)historyEntry.setVisibility(enabled?View.VISIBLE:View.GONE);
         if(webView!=null)webView.evaluateJavascript("window.__allConvertSetPro&&window.__allConvertSetPro("+enabled+")",null);
         if(enabled){
             adsInitialized=false;

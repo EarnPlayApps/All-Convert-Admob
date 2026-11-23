@@ -69,8 +69,13 @@ jobs:
           history_anchor = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;'
           if history_anchor not in h:
               raise SystemExit("FAIL: successful conversion History hook not found")
-          history_hook = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;if(window.AndroidBridge?.recordConverted&&b.size<=52428800){try{const reader=new FileReader();const encoded=await new Promise((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(reader.error);reader.readAsDataURL(b)});window.AndroidBridge.recordConverted(resultName,b.type||"application/octet-stream",encoded)}catch(historyError){console.warn("History local save failed",historyError)}}'
+          history_hook = 'resultBlob=b;resultName=baseName(currentFile.name)+"."+to;if(window.AndroidBridge?.recordConverted){if(b.size<=52428800){try{const reader=new FileReader();const encoded=await new Promise((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result).split(",")[1]||"");reader.onerror=()=>reject(reader.error);reader.readAsDataURL(b)});window.AndroidBridge.recordConverted(resultName,b.type||"application/octet-stream",encoded);window.__allConvertHistoryLarge=false}catch(historyError){console.warn("History local save failed",historyError)}}else{window.__allConvertHistoryLarge=true}}'
           h = h.replace(history_anchor, history_hook, 1)
+          toast_anchor = 'showToast("✅ Conversion berjaya!",resultName+" sudah siap.");'
+          if toast_anchor not in h:
+              raise SystemExit("FAIL: successful conversion toast anchor not found")
+          toast_replacement = 'showToast("✅ Conversion berjaya!",resultName+" sudah siap."+(window.__allConvertHistoryLarge?" Fail lebih 50 MB tidak masuk History automatik; sila simpan manual.":""));window.__allConvertHistoryLarge=false;'
+          h = h.replace(toast_anchor, toast_replacement, 1)
           print("Automatic Pro History hook added after successful conversion")
           if 'recordConverted' not in h:
               raise SystemExit("FAIL: automatic History hook was not inserted")

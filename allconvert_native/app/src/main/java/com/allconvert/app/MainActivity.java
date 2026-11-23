@@ -105,7 +105,7 @@ public class MainActivity extends Activity {
         WebSettings s=webView.getSettings(); s.setJavaScriptEnabled(true); s.setDomStorageEnabled(true);
         s.setAllowFileAccess(true); s.setAllowContentAccess(true);
         webView.addJavascriptInterface(new AndroidBridge(),"AndroidBridge");
-        webView.setWebViewClient(new WebViewClient(){@Override public void onPageFinished(WebView v,String u){handleIncoming(getIntent());v.evaluateJavascript("window.__allConvertSetPro&&window.__allConvertSetPro("+isPro+")",null);v.evaluateJavascript("window.AndroidBridge&&window.AndroidBridge.setAdPage&&window.AndroidBridge.setAdPage('home')",null);}});
+        webView.setWebViewClient(new WebViewClient(){@Override public void onPageFinished(WebView v,String u){handleIncoming(getIntent());v.evaluateJavascript("window.__allConvertSetPro&&window.__allConvertSetPro("+isPro+")",null);}});
         webView.setWebChromeClient(new WebChromeClient(){@Override public boolean onShowFileChooser(WebView v,ValueCallback<Uri[]> cb,FileChooserParams p){
             if(filePathCallback!=null)filePathCallback.onReceiveValue(null); filePathCallback=cb;
             try{startActivityForResult(p.createIntent(),FILE_CHOOSER_REQUEST);return true;}catch(Exception e){filePathCallback=null;cb.onReceiveValue(null);return false;}

@@ -804,7 +804,9 @@ public class MainActivity extends Activity {
     private void loadNative(){
         if(isPro)return;
         AdLoader loader=new AdLoader.Builder(this,NATIVE_ID).forNativeAd(ad->{if(nativeAd!=null)nativeAd.destroy();nativeAd=ad;renderNative(ad);})
-            .withNativeAdOptions(new NativeAdOptions.Builder().build()).withAdListener(new AdListener(){}).build();
+            .withNativeAdOptions(new NativeAdOptions.Builder().build()).withAdListener(new AdListener(){
+                @Override public void onAdFailedToLoad(LoadAdError error){runOnUiThread(()->{if(nativeAd==null&&nativeContainer!=null){nativeContainer.removeAllViews();nativeContainer.setVisibility(View.GONE);}});}
+            }).build();
         loader.loadAd(new AdRequest.Builder().build());
     }
     private int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
@@ -814,28 +816,28 @@ public class MainActivity extends Activity {
         LinearLayout wrap=new LinearLayout(this); wrap.setOrientation(LinearLayout.VERTICAL);
         wrap.setPadding(dp(8),dp(6),dp(8),dp(5)); wrap.setBackgroundColor(Color.rgb(247,250,255));
         NativeAdView nv=new NativeAdView(this);
-        nv.setLayoutParams(new LinearLayout.LayoutParams(-1,dp(128)));
+        nv.setLayoutParams(new LinearLayout.LayoutParams(-1,dp(88)));
         LinearLayout row=new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL); row.setPadding(dp(4),dp(3),dp(4),dp(3));
-        com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(112),dp(112)));
+        com.google.android.gms.ads.nativead.MediaView media=new com.google.android.gms.ads.nativead.MediaView(this); media.setLayoutParams(new LinearLayout.LayoutParams(dp(76),dp(76)));
         row.addView(media);
         LinearLayout text=new LinearLayout(this); text.setOrientation(LinearLayout.VERTICAL); text.setPadding(dp(9),0,dp(4),0); text.setLayoutParams(new LinearLayout.LayoutParams(0,-1,1));
         TextView headline=new TextView(this); headline.setTextSize(13); headline.setTextColor(Color.rgb(20,28,45)); headline.setMaxLines(2); headline.setTypeface(null,android.graphics.Typeface.BOLD);
         TextView body=new TextView(this); body.setTextSize(10); body.setTextColor(Color.rgb(90,100,120)); body.setMaxLines(2); body.setPadding(0,dp(2),0,dp(2));
-        Button cta=new Button(this); cta.setTextSize(10); cta.setMinHeight(dp(32)); cta.setAllCaps(false); cta.setTextColor(Color.rgb(40,60,120));
-        text.addView(headline,new LinearLayout.LayoutParams(-1,0,1)); text.addView(body,new LinearLayout.LayoutParams(-1,0,1)); text.addView(cta,new LinearLayout.LayoutParams(-1,dp(34)));
+        Button cta=new Button(this); cta.setTextSize(10); cta.setMinHeight(dp(28)); cta.setAllCaps(false); cta.setTextColor(Color.rgb(40,60,120));
+        text.addView(headline,new LinearLayout.LayoutParams(-1,0,1)); text.addView(body,new LinearLayout.LayoutParams(-1,0,1)); text.addView(cta,new LinearLayout.LayoutParams(-1,dp(28)));
         row.addView(text);
         nv.addView(row);
         nv.setMediaView(media); nv.setHeadlineView(headline); nv.setBodyView(body); nv.setCallToActionView(cta); nv.setNativeAd(ad);
         TextView hide=new TextView(this);
         hide.setText("Sembunyikan iklan"); hide.setTextSize(11); hide.setTypeface(null,android.graphics.Typeface.BOLD);
         hide.setTextColor(Color.rgb(35,91,180)); hide.setGravity(Gravity.CENTER);
-        hide.setPadding(dp(13),0,dp(13),0); hide.setMinHeight(dp(30));
+        hide.setPadding(dp(10),0,dp(10),0); hide.setMinHeight(dp(24));
         android.graphics.drawable.GradientDrawable pill=new android.graphics.drawable.GradientDrawable();
         pill.setColor(Color.rgb(232,241,255)); pill.setCornerRadius(dp(18)); pill.setStroke(dp(1),Color.rgb(205,222,248));
         hide.setBackground(pill); hide.setContentDescription("Sembunyikan iklan native");
         wrap.addView(nv);
-        LinearLayout.LayoutParams hideParams=new LinearLayout.LayoutParams(-2,dp(30));
-        hideParams.gravity=Gravity.RIGHT; hideParams.topMargin=dp(4);
+        LinearLayout.LayoutParams hideParams=new LinearLayout.LayoutParams(-2,dp(24));
+        hideParams.gravity=Gravity.RIGHT; hideParams.topMargin=dp(2);
         wrap.addView(hide,hideParams);
         final boolean[] nativeHidden={false};
         hide.setOnClickListener(v->{

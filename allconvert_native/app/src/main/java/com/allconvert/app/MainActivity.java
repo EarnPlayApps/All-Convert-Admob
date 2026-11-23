@@ -677,27 +677,29 @@ public class MainActivity extends Activity {
 
     private class AndroidBridge{
         @JavascriptInterface public void recordConverted(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);if(data.length>0)recordHistory(name,type,data);}
-        @JavascriptInterface public void conversionCompleted(){
-            getSharedPreferences("all_convert_free_download",MODE_PRIVATE).edit().putBoolean("used_for_current_result",false).apply();
-            if(!isPro)runOnUiThread(()->{conversionCount++;getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putInt(PREF_CONVERSION_COUNT,conversionCount).apply();if(conversionCount%5==0)showInterstitialIfReady();});
-        }
-        @JavascriptInterface public boolean consumeFreeDownload(){
+        private boolean allowFreeResultAction(){
             if(isPro)return true;
             SharedPreferences prefs=getSharedPreferences("all_convert_free_download",MODE_PRIVATE);
             if(prefs.getBoolean("used_for_current_result",false)){
-                runOnUiThread(()->Toast.makeText(MainActivity.this,"Hasil Free hanya boleh dimuat turun sekali. Langgan Pro untuk History dan muat turun semula.",Toast.LENGTH_LONG).show());
+                runOnUiThread(()->Toast.makeText(MainActivity.this,"Had muat turun untuk hasil Free ini telah digunakan. Langgan Pro untuk History dan muat turun semula.",Toast.LENGTH_LONG).show());
                 return false;
             }
             prefs.edit().putBoolean("used_for_current_result",true).apply();
+            runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertLockResultActions&&window.__allConvertLockResultActions()",null);});
             return true;
         }
+        @JavascriptInterface public void conversionCompleted(){
+            getSharedPreferences("all_convert_free_download",MODE_PRIVATE).edit().putBoolean("used_for_current_result",false).apply();
+            runOnUiThread(()->{if(webView!=null)webView.evaluateJavascript("window.__allConvertUnlockResultActions&&window.__allConvertUnlockResultActions()",null);if(!isPro){conversionCount++;getSharedPreferences(PREFS_ADS,MODE_PRIVATE).edit().putInt(PREF_CONVERSION_COUNT,conversionCount).apply();if(conversionCount%5==0)showInterstitialIfReady();}});
+        }
         @JavascriptInterface public void download(String n,String m,String b){
+            if(!allowFreeResultAction())return;
             String name=safe(n); String type=mime(m); byte[] data=dec(b);
             if(isHtmlFile(name,type)){runOnUiThread(()->showHtmlPreview(name,type,data));}else{saveDownload(name,type,data);}
         }
-        @JavascriptInterface public void saveAs(String n,String m,String b){String name=safe(n);byte[] data=dec(b);runOnUiThread(()->{pendingBytes=data;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,name);try{startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}catch(Exception e){pendingBytes=null;Toast.makeText(MainActivity.this,"Tidak dapat membuka lokasi simpan.",Toast.LENGTH_LONG).show();}});}
-        @JavascriptInterface public void share(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);shareOrOpen(name,type,data);}
-        @JavascriptInterface public void openWith(String n,String m,String b){String name=safe(n),type=mime(m);byte[] data=dec(b);openFile(name,type,data);}
+        @JavascriptInterface public void saveAs(String n,String m,String b){if(!allowFreeResultAction())return;String name=safe(n);byte[] data=dec(b);runOnUiThread(()->{pendingBytes=data;Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.addCategory(Intent.CATEGORY_OPENABLE);i.setType(mime(m));i.putExtra(Intent.EXTRA_TITLE,name);try{startActivityForResult(i,SAVE_DOCUMENT_REQUEST);}catch(Exception e){pendingBytes=null;Toast.makeText(MainActivity.this,"Tidak dapat membuka lokasi simpan.",Toast.LENGTH_LONG).show();}});}
+        @JavascriptInterface public void share(String n,String m,String b){if(!allowFreeResultAction())return;String name=safe(n),type=mime(m);byte[] data=dec(b);shareOrOpen(name,type,data);}
+        @JavascriptInterface public void openWith(String n,String m,String b){if(!allowFreeResultAction())return;String name=safe(n),type=mime(m);byte[] data=dec(b);openFile(name,type,data);}
         @JavascriptInterface public void showRewarded(){runOnUiThread(MainActivity.this::showRewardedIfReady);}
         @JavascriptInterface public void openPro(){runOnUiThread(MainActivity.this::showProPlansDialog);}
         @JavascriptInterface public void openSettings(){runOnUiThread(MainActivity.this::showSettingsDialog);}

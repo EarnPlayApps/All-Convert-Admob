@@ -551,14 +551,15 @@ public class MainActivity extends Activity {
 
     private void showMainMenuDialog(){
         final String[] labels=isPro
-            ? new String[]{"Mula / Penukar Fail","Pelan All Convert Pro","History Pro","Tetapan & Maklumat"}
-            : new String[]{"Mula / Penukar Fail","Pelan All Convert Pro","History & Muat Turun (Pro)","Tetapan & Maklumat"};
+            ? new String[]{"Mula / Penukar Fail","Pengumuman & Promosi","Pelan All Convert Pro","History Pro","Tetapan & Maklumat"}
+            : new String[]{"Mula / Penukar Fail","Pengumuman & Promosi","Pelan All Convert Pro","History & Muat Turun (Pro)","Tetapan & Maklumat"};
         new AlertDialog.Builder(this)
             .setTitle("Menu All Convert")
             .setItems(labels,(dialog,which)->{
                 if(which==0){webView.evaluateJavascript("window.scrollTo({top:0,behavior:'smooth'})",null);}
-                else if(which==1)showProPlansDialog();
-                else if(which==2)showHistoryDialog();
+                else if(which==1){webView.evaluateJavascript("document.getElementById('promoAnnouncement')?.scrollIntoView({behavior:'smooth',block:'center'})",null);}
+                else if(which==2)showProPlansDialog();
+                else if(which==3)showHistoryDialog();
                 else showSettingsDialog();
             }).setNegativeButton("Tutup",null).show();
     }

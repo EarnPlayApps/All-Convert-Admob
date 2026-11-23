@@ -115,20 +115,20 @@ jobs:
 
           insert_at = body_match.end()
           promo_css = r"""<style>
-          .ac-promo{box-sizing:border-box;width:calc(100% - 28px);max-width:760px;margin:16px auto 20px;border:1px solid #f5d7b9;border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 12px 32px rgba(120,72,24,.12);color:#202b3c;font-family:inherit}
-          .ac-promo-top{display:flex;align-items:center;gap:12px;padding:15px 17px;background:linear-gradient(110deg,#fff8ef 0%,#fff 55%,#fff0df 100%);border-bottom:1px solid #f8e5d2}
-          .ac-promo-mark{width:42px;height:42px;flex:0 0 42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,#ffad4d,#ef790c);color:#fff;box-shadow:0 5px 12px rgba(230,119,12,.24)}
+          .ac-promo{box-sizing:border-box;width:calc(100% - 28px);max-width:760px;margin:16px auto 20px;border:1px solid #293654;border-radius:25px;overflow:hidden;background:linear-gradient(145deg,#10183c 0%,#0c1221 72%,#063c52 140%);box-shadow:0 20px 55px #0006;color:#fff;font-family:inherit}
+          .ac-promo-top{display:flex;align-items:center;gap:12px;padding:15px 17px;background:linear-gradient(110deg,#171f3b 0%,#10183c 58%,#121b2d 100%);border-bottom:1px solid #293654}
+          .ac-promo-mark{width:42px;height:42px;flex:0 0 42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#7768ff,#22cfee);color:#fff;box-shadow:0 6px 18px #556dff55}
           .ac-promo-mark svg{width:23px;height:23px}
           .ac-promo-heading{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
-          .ac-promo-kicker{font-size:10px;font-weight:900;letter-spacing:.13em;color:#d66b0a}
-          .ac-promo-brand{font-size:12px;font-weight:850;letter-spacing:.07em;color:#283448}
-          .ac-promo-live{padding:6px 9px;border-radius:999px;background:#fff0df;color:#c45c00;font-size:9px;font-weight:900;letter-spacing:.08em}
+          .ac-promo-kicker{font-size:10px;font-weight:900;letter-spacing:.13em;color:#22cfee}
+          .ac-promo-brand{font-size:12px;font-weight:850;letter-spacing:.07em;color:#fff}
+          .ac-promo-live{padding:6px 9px;border:1px solid #3b4c78;border-radius:999px;background:#171f3b;color:#aeb9d1;font-size:9px;font-weight:900;letter-spacing:.08em}
           .ac-promo-content{padding:17px 18px 16px}
-          .ac-promo-content h2{margin:0 0 8px;color:#202b3c;font-size:clamp(18px,4vw,22px);line-height:1.25;font-weight:900;letter-spacing:-.02em}
-          .ac-promo-content p{margin:0;color:#596579;font-size:13px;line-height:1.65}
+          .ac-promo-content h2{margin:0 0 8px;color:#fff;font-size:clamp(18px,4vw,22px);line-height:1.25;font-weight:900;letter-spacing:-.02em}
+          .ac-promo-content p{margin:0;color:#aeb9d1;font-size:13px;line-height:1.65}
           .ac-promo-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px}
-          .ac-promo-dates{display:inline-flex;align-items:center;min-height:30px;padding:5px 10px;border:1px solid #f3dfca;border-radius:10px;background:#fffaf5;color:#a45a19;font-size:10px;font-weight:750}
-          .ac-promo-cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border:0;border-radius:12px;background:linear-gradient(135deg,#ff9c2f,#e96c00);box-shadow:0 5px 12px rgba(224,107,0,.22);color:#fff;font-size:12px;font-weight:850;cursor:pointer}
+          .ac-promo-dates{display:inline-flex;align-items:center;min-height:30px;padding:5px 10px;border:1px solid #2b3956;border-radius:10px;background:#121b2d;color:#aeb9d1;font-size:10px;font-weight:750}
+          .ac-promo-cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border:0;border-radius:12px;background:linear-gradient(135deg,#7768ff,#22cfee);box-shadow:0 6px 16px #556dff44;color:#fff;font-size:12px;font-weight:850;cursor:pointer}
           .ac-promo-cta:active{transform:translateY(1px)}
           @media(max-width:380px){.ac-promo{width:calc(100% - 20px);border-radius:18px}.ac-promo-content{padding:14px}.ac-promo-footer{align-items:stretch;flex-direction:column}.ac-promo-cta{width:100%}}
           </style>"""

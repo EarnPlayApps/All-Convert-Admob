@@ -82,6 +82,9 @@ jobs:
           native_bridge = r'''<script>(function(){
           const browserDownload=window.downloadResultFile,browserSave=window.saveToDevice,browserShare=window.shareResult,browserOpen=window.openResultFile;
           const pick=document.getElementById('pickFileBtn'),input=document.getElementById('fileInput');if(pick&&input)pick.addEventListener('click',()=>input.click());
+          const resultActionIds=['downloadBtn','saveBtn','shareBtn','openBtn'];
+          window.__allConvertLockResultActions=function(){resultActionIds.forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.setAttribute('aria-disabled','true');b.style.opacity='.48';b.style.cursor='not-allowed'}})};
+          window.__allConvertUnlockResultActions=function(){resultActionIds.forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=false;b.removeAttribute('aria-disabled');b.style.opacity='';b.style.cursor=''}})};
           function send(method,blob,name){return new Promise((resolve,reject)=>{try{if(!window.AndroidBridge||typeof window.AndroidBridge[method]!=="function")return reject(new Error("Native file bridge unavailable"));const reader=new FileReader();reader.onerror=()=>reject(reader.error||new Error("Fail tidak dapat dibaca"));reader.onload=()=>{try{const encoded=String(reader.result).split(",")[1]||"";if(!encoded)throw new Error("Data fail kosong");window.AndroidBridge[method](name,blob.type||"application/octet-stream",encoded);resolve()}catch(e){reject(e)}};reader.readAsDataURL(blob)}catch(e){reject(e)}})}
           window.downloadResultFile=function(){if(!resultBlob)return window.showToast("Tiada fail","Buat conversion dahulu.");if(!window.AndroidBridge)return browserDownload();send("download",resultBlob,resultName).then(()=>{window.setStatus("Fail dihantar ke folder Download. ✓","ok");window.showToast("Download","Fail disimpan dalam Download/All Convert.")}).catch(e=>{console.error(e);window.showToast("Download gagal",e.message||"Cuba lagi.")})};
           window.saveToDevice=async function(){if(!resultBlob)return window.showToast("Tiada fail","Buat conversion dahulu.");if(!window.AndroidBridge)return browserSave();try{await send("saveAs",resultBlob,resultName);window.setStatus("Pilih lokasi untuk simpan fail.","ok")}catch(e){console.error(e);window.showToast("Simpanan gagal",e.message||"Cuba Download.")}};
@@ -263,15 +266,6 @@ jobs:
               <script>
               (function(){
                 const nav=document.querySelector('.ac-bottom-nav');if(!nav||nav.dataset.ready)return;nav.dataset.ready='1';
-                document.addEventListener('click',function(e){
-                  const output=e.target.closest('#downloadBtn,#saveBtn,#shareBtn,#openBtn');
-                  const result=document.getElementById('result');
-                  if(!output||!result||getComputedStyle(result).display==='none'||!window.AndroidBridge||typeof AndroidBridge.consumeFreeDownload!=='function')return;
-                  if(!AndroidBridge.consumeFreeDownload()){
-                    e.preventDefault();e.stopImmediatePropagation();
-                    if(window.showToast)window.showToast('Muat turun telah digunakan','Hasil Free hanya boleh dimuat turun sekali. Langgan Pro untuk History dan muat turun semula.');
-                  }
-                },true);
                 nav.addEventListener('click',function(e){
                   const b=e.target.closest('button[data-tab]');if(!b)return;
                   nav.querySelectorAll('button').forEach(x=>{x.classList.toggle('active',x===b);if(x===b)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});

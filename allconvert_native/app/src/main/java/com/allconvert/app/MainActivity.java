@@ -331,9 +331,14 @@ public class MainActivity extends Activity {
                     String objectPath=cloudUserId+"/"+UUID.randomUUID().toString()+"_"+safe(name);
                     if(bytes.length>104857600L||!pruneCloudHistory(bytes.length))continue;
                     cloudRequest("POST","/storage/v1/object/allconvert-history/"+encodeObjectPath(objectPath),bytes,item.optString("mime","application/octet-stream"));
-                    JSONObject row=new JSONObject();row.put("user_id",cloudUserId);row.put("file_name",name);row.put("mime_type",item.optString("mime","application/octet-stream"));row.put("object_path",objectPath);row.put("file_size",bytes.length);
-                    cloudText("POST","/rest/v1/allconvert_history",row.toString());
-                    item.put("cloud_synced",true);item.put("cloud_path",objectPath);changed=true;
+                    try{
+                        JSONObject row=new JSONObject();row.put("user_id",cloudUserId);row.put("file_name",name);row.put("mime_type",item.optString("mime","application/octet-stream"));row.put("object_path",objectPath);row.put("file_size",bytes.length);
+                        cloudText("POST","/rest/v1/allconvert_history",row.toString());
+                        item.put("cloud_synced",true);item.put("cloud_path",objectPath);changed=true;
+                    }catch(Exception metadataError){
+                        try{cloudRequest("DELETE","/storage/v1/object/allconvert-history/"+encodeObjectPath(objectPath),null,null);}catch(Exception cleanupError){android.util.Log.w("AllConvertCloud","Orphan cleanup failed",cleanupError);}
+                        throw metadataError;
+                    }
                 }catch(Exception e){android.util.Log.w("AllConvertCloud","History sync failed",e);}
             }
             if(changed)getSharedPreferences(HISTORY_PREFS,MODE_PRIVATE).edit().putString(HISTORY_KEY,records.toString()).apply();
